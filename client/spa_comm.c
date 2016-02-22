@@ -1,10 +1,11 @@
-/**
- * \file client/spa_comm.c
+/*
+ *****************************************************************************
  *
- * \brief Network-related functions for the fwknop client
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    spa_comm.c
+ *
+ * Purpose: Network-related functions for the fwknop client
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -112,6 +113,7 @@ send_spa_packet_tcp_or_udp(const char *spa_data, const int sd_len,
     {
         /* Send the SPA data packet via an established TCP connection.
         */
+        printf("Send the SPA with TCP\n");
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
     }
@@ -149,7 +151,10 @@ send_spa_packet_tcp_or_udp(const char *spa_data, const int sd_len,
         sock = socket(rp->ai_family, rp->ai_socktype,
                 rp->ai_protocol);
         if (sock < 0)
-            continue;
+          {
+          printf("Create socket failed!\n");
+          continue;
+        	}
 
         if ((error = (connect(sock, rp->ai_addr, rp->ai_addrlen) != -1)))
         {
@@ -633,6 +638,8 @@ send_spa_packet(fko_ctx_t ctx, fko_cli_options_t *options)
 
     /* Get our spa data here.
     */
+    //获取SPA发送的数据。
+    //spa_data = ctx->encrypted_msg+10;
     res = fko_get_spa_data(ctx, &spa_data);
 
     if(res != FKO_SUCCESS)
@@ -661,9 +668,10 @@ send_spa_packet(fko_ctx_t ctx, fko_cli_options_t *options)
 
     dump_transmit_options(options);
 
+	//TCP或UDP协议不用构造报文头部，直接发送数据。
     if (options->spa_proto == FKO_PROTO_TCP || options->spa_proto == FKO_PROTO_UDP)
     {
-        res = send_spa_packet_tcp_or_udp(spa_data, sd_len, options);
+        res = send_spa_packet_tcp_or_udp(spa_data, sd_len, options);		//发送spa_data。
     }
     else if (options->spa_proto == FKO_PROTO_HTTP)
     {

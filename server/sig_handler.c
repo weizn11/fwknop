@@ -1,10 +1,11 @@
-/**
- * \file server/sig_handler.c
+/*
+ *****************************************************************************
  *
- * \brief Signal handling dta and routines for fwknopd.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    sig_handler.c
+ *
+ * Purpose: Signal handling dta and routines for fwknopd.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -98,9 +99,9 @@ set_sig_handlers(void)
 
     /* Setup the handlers
     */
-    act.sa_handler = sig_handler;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = SA_RESTART;
+    act.sa_handler = sig_handler;	//设置信号处理函数。
+    sigemptyset(&act.sa_mask);		//清空信号集。
+    act.sa_flags = SA_RESTART;		//如果信号中断了进程的某个系统调用，则系统自动启动该系统调用。
 
     if(sigaction(SIGHUP, &act, NULL) < 0)
     {

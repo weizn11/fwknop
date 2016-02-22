@@ -1,10 +1,11 @@
-/**
- * \file server/incoming_spa.c
+/*
+ *****************************************************************************
  *
- * \brief Process an incoming SPA data packet for fwknopd.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    incoming_spa.c
+ *
+ * Purpose: Process an incoming SPA data packet for fwknopd.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -50,11 +51,10 @@
  * error code value if there is any indication the data is not valid spa data.
 */
 static int
-preprocess_spa_data(const fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt, spa_data_t *spadat)
+preprocess_spa_data(const fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt)
 {
 
     char    *ndx = (char *)&(spa_pkt->packet_data);
-    char    *xff;
     int      i, pkt_data_len = 0;
 
     pkt_data_len = spa_pkt->packet_data_len;
@@ -81,6 +81,7 @@ preprocess_spa_data(const fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt, spa_
      * a prefix after the outer one is stripped off won't decrypt properly
      * anyway because libfko would not add a new one.
     */
+    //Ç°10¸ö×Ö½ÚÎªB64_RIJNDAEL_SALTÔòÊÇ´íÎóµÄSPA Packet.
     if(constant_runtime_cmp(ndx, B64_RIJNDAEL_SALT, B64_RIJNDAEL_SALT_STR_LEN) == 0)
         return(SPA_MSG_BAD_DATA);
 
@@ -88,13 +89,11 @@ preprocess_spa_data(const fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt, spa_
             && constant_runtime_cmp(ndx, B64_GPG_PREFIX, B64_GPG_PREFIX_STR_LEN) == 0)
         return(SPA_MSG_BAD_DATA);
 
-    /* Initialize X-Forwarded-For field */
-    spadat->pkt_source_xff_ip[0] = '\0';
-
     /* Detect and parse out SPA data from an HTTP request. If the SPA data
      * starts with "GET /" and the user agent starts with "Fwknop", then
      * assume it is a SPA over HTTP request.
     */
+    //½âÎöHTTP SPA.
     if(strncasecmp(opts->config[CONF_ENABLE_SPA_OVER_HTTP], "Y", 1) == 0
       && strncasecmp(ndx, "GET /", 5) == 0
       && strstr(ndx, "User-Agent: Fwknop") != NULL)
@@ -103,29 +102,6 @@ preprocess_spa_data(const fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt, spa_
          * configured to accept such request and if so, find the SPA
          * data.
         */
-
-        /* Process X-Forwarded-For header */
-
-        xff = strcasestr(ndx, "X-Forwarded-For: ");
-
-        if (xff != NULL) {
-            xff += 17;
-
-            for (i = 0; *xff != '\0'; i++)
-                if (isspace(*xff))
-                   *xff = '\0';
-                else
-                   xff++;
-
-            xff -= i - 1;
-
-            if (!is_valid_ipv4_addr(xff))
-                log_msg(LOG_WARNING,
-                "Error parsing X-Forwarded-For header: value '%s' is not an IP address",
-                xff);
-            else
-                strlcpy(spadat->pkt_source_xff_ip, xff, i);
-        }
 
         /* Now extract, adjust (convert characters translated by the fwknop
          * client), and reset the SPA message itself.
@@ -156,6 +132,7 @@ preprocess_spa_data(const fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt, spa_
 
     /* Require base64-encoded data
     */
+    //½ÓÊÕµ½µÄ±¨ÎÄÓ¦¸ÃÊÇbase64±àÂë¸ñÊ½¡£
     if(! is_base64(spa_pkt->packet_data, pkt_data_len))
         return(SPA_MSG_NOT_SPA_DATA);
 
@@ -164,6 +141,7 @@ preprocess_spa_data(const fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt, spa_
      * The ultimate test will be whether the SPA data authenticates via an
      * HMAC anyway.
     */
+    //È·ÈÏÊÇSPAÊý¾Ý°ü¡£
     return(FKO_SUCCESS);
 }
 
@@ -180,8 +158,10 @@ get_raw_digest(char **digest, char *pkt_data)
     /* initialize an FKO context with no decryption key just so
      * we can get the outer message digest
     */
+    //pkt_data:SPAÔ­Ê¼Êý¾Ý°ü¡
+    //ÔÚ²»´«Èë½âÃÜÃÜÔ¿µÄÇé¿öÏÂÎÒÃÇ¿ÉÒÔ»ñÈ¡½ÓÊÕµ½µÄmessageÕªÒª¡£
     res = fko_new_with_data(&ctx, (char *)pkt_data, NULL, 0,
-            FKO_DEFAULT_ENC_MODE, NULL, 0, 0);
+            FKO_DEFAULT_ENC_MODE, NULL, 0, 0);	//½«pkt_data¸´ÖÆµ½ctx->encrypted_msgÖÐ¡£
 
     if(res != FKO_SUCCESS)
     {
@@ -192,6 +172,7 @@ get_raw_digest(char **digest, char *pkt_data)
         return(SPA_MSG_FKO_CTX_ERROR);
     }
 
+	//ÉèÖÃSPAÕªÒªÀàÐÍ(default:SHA256)¡£
     res = fko_set_raw_spa_digest_type(ctx, FKO_DEFAULT_DIGEST);
     if(res != FKO_SUCCESS)
     {
@@ -201,7 +182,7 @@ get_raw_digest(char **digest, char *pkt_data)
         ctx = NULL;
         return(SPA_MSG_DIGEST_ERROR);
     }
-
+	//»ñÈ¡SPAÕªÒªÀàÐÍ(SHA256)¡£
     res = fko_get_raw_spa_digest_type(ctx, &raw_digest_type);
     if(res != FKO_SUCCESS)
     {
@@ -214,6 +195,7 @@ get_raw_digest(char **digest, char *pkt_data)
 
     /* Make sure the digest type is what we expect
     */
+    //È·±£ÊÇÎÒÃÇËùÆÚÍûµÄÕªÒªÀàÐÍ¡£
     if(raw_digest_type != FKO_DEFAULT_DIGEST)
     {
         log_msg(LOG_WARNING, "Error setting digest type for SPA data: %s",
@@ -222,7 +204,7 @@ get_raw_digest(char **digest, char *pkt_data)
         ctx = NULL;
         return(SPA_MSG_DIGEST_ERROR);
     }
-
+	//¼ÆËãctx->encrypted_msgµÄÕªÒª(default:SHA256)£¬´æÈëctx->raw_digest¡£
     res = fko_set_raw_spa_digest(ctx);
     if(res != FKO_SUCCESS)
     {
@@ -233,6 +215,7 @@ get_raw_digest(char **digest, char *pkt_data)
         return(SPA_MSG_DIGEST_ERROR);
     }
 
+	//»ñÈ¡Server¼ÆËã³öµÄÕªÒª¡£tmp_digest=ctx->raw_digest;
     res = fko_get_raw_spa_digest(ctx, &tmp_digest);
     if(res != FKO_SUCCESS)
     {
@@ -248,7 +231,7 @@ get_raw_digest(char **digest, char *pkt_data)
     if (*digest == NULL)
         res = SPA_MSG_ERROR;  /* really a strdup() memory allocation problem */
 
-    fko_destroy(ctx);
+    fko_destroy(ctx);	//ÊÍ·Åctx½á¹¹¡£
     ctx = NULL;
 
     return res;
@@ -363,13 +346,16 @@ static int
 src_check(fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt,
         spa_data_t *spadat, char **raw_digest)
 {
+	//Í¨¹ýÀ´Ô´IPÆ¥Åästanzas.
     if (is_src_match(opts->acc_stanzas, ntohl(spa_pkt->packet_src_ip)))
     {
         if(strncasecmp(opts->config[CONF_ENABLE_DIGEST_PERSISTENCE], "Y", 1) == 0)
         {
             /* Check for a replay attack
             */
-            if(get_raw_digest(raw_digest, (char *)spa_pkt->packet_data) != FKO_SUCCESS)
+            //¼ì²éÊÇ·ñÊÇÖØ·Å¹¥»÷¡£
+            //»ñÈ¡encrypted_msgµÄSHA256ÕªÒªÊý¾Ý£¬´æÔÚraw_digestÖÐ¡£
+            if(get_raw_digest(raw_digest, (char *)spa_pkt->packet_data) != FKO_SUCCESS)	//¼ÆËãencrypted_msgÃÜÎÄµÄÕªÒª£¬·µ»ØÔÚraw_digest¡£
             {
                 if (*raw_digest != NULL)
                     free(*raw_digest);
@@ -378,6 +364,7 @@ src_check(fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt,
             if (*raw_digest == NULL)
                 return 0;
 
+		//¼ì²âÊÇ·ñÊÜµ½ÖØ·Å¹¥»÷¡£
             if (is_replay(opts, *raw_digest) != SPA_MSG_SUCCESS)
             {
                 free(*raw_digest);
@@ -403,7 +390,8 @@ precheck_pkt(fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt,
 
     packet_data_len = spa_pkt->packet_data_len;
 
-    res = preprocess_spa_data(opts, spa_pkt, spadat);
+	//¼ì²éÊÕµ½µÄÊý¾Ý°üÊÇ²»ÊÇSPA ÈÏÖ¤°ü¡£
+    res = preprocess_spa_data(opts, spa_pkt);
     if(res != FKO_SUCCESS)
     {
         log_msg(LOG_DEBUG, "[%s] preprocess_spa_data() returned error %i: '%s' for incoming packet.",
@@ -416,7 +404,7 @@ precheck_pkt(fko_srv_options_t *opts, spa_pkt_info_t *spa_pkt,
         printf("[+] candidate SPA packet payload:\n");
         hex_dump(spa_pkt->packet_data, packet_data_len);
     }
-
+	//½âÎöSPAÊý¾Ý±¨²¢¼ì²éSPAµÄÀ´Ô´ÊÇ·ñÕýÈ·¡£
     if(! src_check(opts, spa_pkt, spadat, raw_digest))
         return 0;
 
@@ -777,11 +765,7 @@ check_src_access(acc_stanza_t *acc, spa_data_t *spadat, const int stanza_num)
             );
             return 0;
         }
-
-        if (spadat->pkt_source_xff_ip[0] != '\0')
-            spadat->use_src_ip = spadat->pkt_source_xff_ip;
-        else
-            spadat->use_src_ip = spadat->pkt_source_ip;
+        spadat->use_src_ip = spadat->pkt_source_ip;
     }
     else
         spadat->use_src_ip = spadat->spa_message_src_ip;
@@ -918,18 +902,22 @@ incoming_spa(fko_srv_options_t *opts)
 
     /* Loop through all access stanzas looking for a match
     */
+    //²éÕÒËùÓÐµÄstanzas£¬Æ¥ÅäÏàÓ¦Ïî¡£
     acc_stanza_t        *acc = opts->acc_stanzas;
 
     inet_ntop(AF_INET, &(spa_pkt->packet_src_ip),
-        spadat.pkt_source_ip, sizeof(spadat.pkt_source_ip));
+        spadat.pkt_source_ip, sizeof(spadat.pkt_source_ip));	//»ñÈ¡Êý¾Ý±¨À´Ô´µØÖ·¡£
 
     inet_ntop(AF_INET, &(spa_pkt->packet_dst_ip),
-        spadat.pkt_destination_ip, sizeof(spadat.pkt_destination_ip));
+        spadat.pkt_destination_ip, sizeof(spadat.pkt_destination_ip));	//»ñÈ¡Êý¾Ý±¨Ä¿µÄµØÖ·¡£
 
     /* At this point, we want to validate and (if needed) preprocess the
      * SPA data and/or to be reasonably sure we have a SPA packet (i.e
      * try to eliminate obvious non-spa packets).
     */
+    //ÔÚÕâÀï£¬ÎÒÃÇÒªÑéÖ¤ºÍÔ¤´¦ÀíSPAÊý¾Ý£¬ÌÞ³ýÃ÷ÏÔ²»ÊÇSPAµÄÊý¾Ý°ü¡£
+    //Í¨¹ý±È¶ÔÕªÒª¼ì²éÊý¾ÝÍêÕûÐÔºÍÊÇ·ñÊÜµ½ÖØ·Å¹¥»÷¡£
+    //¼ÆËãctx->encrypted_msgµÄSHA256ÕªÒªÊý¾Ý£¬´æÔÚraw_digest¡£
     if(!precheck_pkt(opts, spa_pkt, &spadat, &raw_digest))
         return;
 
@@ -946,6 +934,7 @@ incoming_spa(fko_srv_options_t *opts)
 
         /* Start access loop with a clean FKO context
         */
+        //¶ÔÃ¿Ò»¸östanza½øÐÐÆ¥Åä£¬Ö±µ½Æ¥Åä³É¹¦ÎªÖ¹¡£
         if(ctx != NULL)
         {
             if(fko_destroy(ctx) == FKO_ERROR_ZERO_OUT_DATA)
@@ -958,6 +947,7 @@ incoming_spa(fko_srv_options_t *opts)
 
         /* Check for a match for the SPA source and destination IP and the access stanza
         */
+        //Æ¥ÅästanzaÖÐµÄÔ´µØÖ·ºÍÄ¿µÄµØÖ·¡£
         if(! src_dst_check(acc, spa_pkt, &spadat, stanza_num))
         {
             acc = acc->next;
@@ -972,6 +962,7 @@ incoming_spa(fko_srv_options_t *opts)
 
         /* Make sure this access stanza has not expired
         */
+        //È·±£Õâ¸östanzaÃ»ÓÐ¹ýÆÚ¡£
         if(! check_stanza_expiration(acc, &spadat, stanza_num))
         {
             acc = acc->next;
@@ -981,8 +972,10 @@ incoming_spa(fko_srv_options_t *opts)
         /* Get encryption type and try its decoding routine first (if the key
          * for that type is set)
         */
+        //¼ì²â´Ë¶ÎÃÜÎÄµÄ¼ÓÃÜÀàÐÍ¡£
         enc_type = fko_encryption_type((char *)spa_pkt->packet_data);
 
+		//»¹Ô­¼ÓÑÎÃÜÎÄ£¬Í¨¹ýHMACÕªÒªÐ£ÑéÊý¾Ý°üµÄÍêÕûÐÔ£¬½âÃÜencrypted_msg¡£
         if(acc->use_rijndael)
             handle_rijndael_enc(acc, spa_pkt, &spadat, &ctx,
                         &attempted_decrypt, &cmd_exec_success, enc_type,
@@ -1004,6 +997,7 @@ incoming_spa(fko_srv_options_t *opts)
 
         /* Add this SPA packet into the replay detection cache
         */
+        //¼ì²âÖØ·Å¹¥»÷¡£
         if(! add_replay_cache(opts, acc, &spadat, raw_digest,
                     &added_replay_digest, stanza_num, &res))
         {
@@ -1037,6 +1031,7 @@ incoming_spa(fko_srv_options_t *opts)
 
         /* Populate our spa data struct for future reference.
         */
+        //ÏòspadatÖÐÌî³ä×Ö¶Î¡£
         res = get_spa_data_fields(ctx, &spadat);
 
         if(res != FKO_SUCCESS)
@@ -1053,10 +1048,12 @@ incoming_spa(fko_srv_options_t *opts)
          * data, then use that.  If not, try the FW_ACCESS_TIMEOUT from the
          * access.conf file (if there is one).  Otherwise use the default.
         */
+        //²é¿´ÔÚSPAÖÐÓÐÃ»ÓÐÉèÖÃ³¬Ê±×Ö¶Î£¬·ñÔò¾ÍÓÃaccess.confÖÐÉèÖÃµÄ×Ö¶Î¡£
         set_timeout(acc, &spadat);
 
         /* Check packet age if so configured.
         */
+        //²é¿´Êý¾Ý°üÖÐµÄÊ±¼ä´ÁÊÇ·ñ¹ýÊ±¡£
         if(! check_pkt_age(opts, &spadat, stanza_num))
         {
             acc = acc->next;
@@ -1112,6 +1109,7 @@ incoming_spa(fko_srv_options_t *opts)
         /* If REQUIRE_USERNAME is set, make sure the username in this SPA data
          * matches.
         */
+        //Èç¹ûREQUIRE_USERNAME ×Ö¶Î±»ÉèÖÃ£¬È·±£ÓÃ»§ÃûÔÚSPAÖÐ¿É±»Æ¥Åä¡£
         if(! check_username(acc, &spadat, stanza_num))
         {
             acc = acc->next;
@@ -1183,6 +1181,7 @@ incoming_spa(fko_srv_options_t *opts)
         {
             if(acc->cmd_cycle_open != NULL)
             {
+            		//Ö´ÐÐiptablesµÄCMD¡£
                 if(cmd_cycle_open(opts, acc, &spadat, stanza_num, &res))
                     break; /* successfully processed a matching access stanza */
                 else

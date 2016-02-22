@@ -1,10 +1,11 @@
-/**
- * \file client/utils.c
+/*
+ *****************************************************************************
  *
- * \brief General/Generic functions for the fwknop client.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    utils.c
+ *
+ * Purpose: General/Generic functions for the fwknop client.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -58,6 +59,7 @@ static fko_protocol_t fko_protocol_array[] =
 int
 verify_file_perms_ownership(const char *file)
 {
+    //file：源文件路径
     int res = 1;
 
 #if HAVE_STAT
@@ -73,9 +75,9 @@ verify_file_perms_ownership(const char *file)
         if(S_ISREG(st.st_mode) != 1 && S_ISLNK(st.st_mode) != 1)
         {
             log_msg(LOG_VERBOSITY_ERROR,
-                "[-] file: %s is not a regular file or symbolic link.",
-                file
-            );
+                    "[-] file: %s is not a regular file or symbolic link.",
+                    file
+                   );
             /* when we start in enforcing this instead of just warning
              * the user
             res = 0;
@@ -85,9 +87,9 @@ verify_file_perms_ownership(const char *file)
         if((st.st_mode & (S_IRWXU|S_IRWXG|S_IRWXO)) != (S_IRUSR|S_IWUSR))
         {
             log_msg(LOG_VERBOSITY_ERROR,
-                "[-] file: %s permissions should only be user read/write (0600, -rw-------)",
-                file
-            );
+                    "[-] file: %s permissions should only be user read/write (0600, -rw-------)",
+                    file
+                   );
             /* when we start in enforcing this instead of just warning
              * the user
             res = 0;
@@ -97,7 +99,7 @@ verify_file_perms_ownership(const char *file)
         if(st.st_uid != getuid())
         {
             log_msg(LOG_VERBOSITY_ERROR, "[-] file: %s not owned by current effective user id",
-                file);
+                    file);
             /* when we start in enforcing this instead of just warning
              * the user
             res = 0;
@@ -112,7 +114,7 @@ verify_file_perms_ownership(const char *file)
         if(errno != ENOENT)
         {
             log_msg(LOG_VERBOSITY_ERROR, "[-] stat() against file: %s returned: %s",
-                file, strerror(errno));
+                    file, strerror(errno));
             res = 0;
         }
     }
@@ -135,15 +137,15 @@ verify_file_perms_ownership(const char *file)
 static void *
 get_in_addr(struct sockaddr *sa)
 {
-  if (sa->sa_family == AF_INET)
-  {
-    return &(((struct sockaddr_in*)sa)->sin_addr);
-  }
+    if (sa->sa_family == AF_INET)
+    {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
 
-  else
-  {
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-  }
+    else
+    {
+        return &(((struct sockaddr_in6*)sa)->sin6_addr);
+    }
 }
 
 /**
@@ -159,14 +161,14 @@ get_in_addr(struct sockaddr *sa)
  */
 int
 resolve_dst_addr(const char *dns_str, struct addrinfo *hints,
-        char *ip_str, size_t ip_bufsize, fko_cli_options_t *opts)
+                 char *ip_str, size_t ip_bufsize, fko_cli_options_t *opts)
 {
     int                 error;      /* Function error return code */
     struct addrinfo    *result;     /* Result of getaddrinfo() */
     struct addrinfo    *rp;         /* Element of the linked list returned by getaddrinfo() */
 #if WIN32 && WINVER <= 0x0600
-	struct sockaddr_in *in;
-	char			   *win_ip;
+    struct sockaddr_in *in;
+    char			   *win_ip;
 #else
     struct sockaddr_in *sai_remote; /* Remote host information as a sockaddr_in structure */
 #endif
@@ -196,13 +198,13 @@ resolve_dst_addr(const char *dns_str, struct addrinfo *hints,
 
             memset(ip_str, 0, ip_bufsize);
 #if WIN32 && WINVER <= 0x0600
-			/* On older Windows systems (anything before Vista?),
-			 * we use inet_ntoa for now.
-			*/
-			in = (struct sockaddr_in*)(rp->ai_addr);
-			win_ip = inet_ntoa(in->sin_addr);
+            /* On older Windows systems (anything before Vista?),
+             * we use inet_ntoa for now.
+            */
+            in = (struct sockaddr_in*)(rp->ai_addr);
+            win_ip = inet_ntoa(in->sin_addr);
 
-			if (win_ip != NULL && (strlcpy(ip_str, win_ip, ip_bufsize) > 0))
+            if (win_ip != NULL && (strlcpy(ip_str, win_ip, ip_bufsize) > 0))
 #else
             sai_remote = (struct sockaddr_in *)get_in_addr((struct sockaddr *)(rp->ai_addr));
             if (inet_ntop(rp->ai_family, sai_remote, ip_str, ip_bufsize) != NULL)

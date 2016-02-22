@@ -1,10 +1,11 @@
-/**
- * \file server/fw_util_pf.c
+/*
+ *****************************************************************************
  *
- * \brief Fwknop routines for managing pf firewall rules.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fw_util_pf.c
+ *
+ * Purpose: Fwknop routines for managing pf firewall rules.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

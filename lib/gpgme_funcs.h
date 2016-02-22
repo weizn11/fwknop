@@ -1,10 +1,11 @@
-/**
- * \file lib/gpgme_funcs.h
+/*
+ *****************************************************************************
  *
- * \brief Header for the fwknop gpgme_funcs.c.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    gpgme_funcs.h
+ *
+ * Purpose: Header for the fwknop gpgme_funcs.c.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_state.h
+/*
+ *****************************************************************************
  *
- * \brief Defines various states and flags for libfko operations.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_state.h
+ *
+ * Purpose: Defines various states and flags for libfko operations.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -72,7 +73,7 @@ typedef enum {
 #define FKO_SPA_DATA_MODIFIED ( \
     FKO_DATA_MODIFIED | FKO_SPA_MSG_TYPE_MODIFIED \
       | FKO_DIGEST_TYPE_MODIFIED | FKO_ENCRYPT_TYPE_MODIFIED )
-
+ 
 /* This should return true if any SPA data field has been modifed since the
  * last encode/encrypt.
 */

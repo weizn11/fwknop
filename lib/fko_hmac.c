@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_hmac.c
+/*
+ *****************************************************************************
  *
- * \brief Provide HMAC support to SPA communications
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_hmac.c
+ *
+ * Purpose: Provide HMAC support to SPA communications
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -56,6 +57,7 @@ fko_verify_hmac(fko_ctx_t ctx,
     if(hmac_key_len < 0 || hmac_key_len > MAX_DIGEST_BLOCK_LEN)
         return(FKO_ERROR_INVALID_HMAC_KEY_LEN);
 
+	//获取HMAC摘要类型对应的长度。
     if(ctx->hmac_type == FKO_HMAC_MD5)
         hmac_b64_digest_len = MD5_B64_LEN;
     else if(ctx->hmac_type == FKO_HMAC_SHA1)
@@ -66,10 +68,6 @@ fko_verify_hmac(fko_ctx_t ctx,
         hmac_b64_digest_len = SHA384_B64_LEN;
     else if(ctx->hmac_type == FKO_HMAC_SHA512)
         hmac_b64_digest_len = SHA512_B64_LEN;
-    else if(ctx->hmac_type == FKO_HMAC_SHA3_256)
-        hmac_b64_digest_len = SHA3_256_B64_LEN;
-    else if(ctx->hmac_type == FKO_HMAC_SHA3_512)
-        hmac_b64_digest_len = SHA3_512_B64_LEN;
     else
         return(FKO_ERROR_UNSUPPORTED_HMAC_MODE);
 
@@ -79,6 +77,7 @@ fko_verify_hmac(fko_ctx_t ctx,
 
     /* Get digest value
     */
+    //从数据包中获取HMAC摘要数据。
     hmac_digest_from_data = strndup((ctx->encrypted_msg
             + ctx->encrypted_msg_len - hmac_b64_digest_len),
             hmac_b64_digest_len);
@@ -88,6 +87,7 @@ fko_verify_hmac(fko_ctx_t ctx,
 
     /* Now we chop the HMAC digest off of the encrypted msg
     */
+    //在数据包的HMAC密文中除去摘要数据。
     tbuf = strndup(ctx->encrypted_msg,
             ctx->encrypted_msg_len - hmac_b64_digest_len);
 
@@ -104,8 +104,9 @@ fko_verify_hmac(fko_ctx_t ctx,
         zero_free_rv = FKO_ERROR_ZERO_OUT_DATA;
 
     ctx->encrypted_msg      = tbuf;
-    ctx->encrypted_msg_len -= hmac_b64_digest_len;
+    ctx->encrypted_msg_len -= hmac_b64_digest_len;	//密文长度减去摘要base64编码的长度。
 
+	//密文类型是GPG.
     if(ctx->encryption_mode == FKO_ENC_MODE_ASYMMETRIC)
     {
         /* See if we need to add the "hQ" string to the front of the
@@ -123,6 +124,7 @@ fko_verify_hmac(fko_ctx_t ctx,
          */
         if(! ctx->added_salted_str)
         {
+        	//还原加盐密文。
             res = add_salted_str(ctx);
         }
     }
@@ -142,17 +144,20 @@ fko_verify_hmac(fko_ctx_t ctx,
     /* Calculate the HMAC from the encrypted data and then
      * compare
     */
-    res = fko_set_spa_hmac_type(ctx, ctx->hmac_type);
+    //计算HMAC密文然后再做比较。
+    res = fko_set_spa_hmac_type(ctx, ctx->hmac_type);	//设置HMAC加密类型。
     if(res == FKO_SUCCESS)
     {
+    	//计算encrypted_msg的HMAC摘要，存在ctx->msg_hmac。
         res = fko_set_spa_hmac(ctx, hmac_key, hmac_key_len);
 
         if(res == FKO_SUCCESS)
         {
+        	//校验HMAC摘要。
             if(constant_runtime_cmp(hmac_digest_from_data,
                     ctx->msg_hmac, hmac_b64_digest_len) != 0)
             {
-                res = FKO_ERROR_INVALID_DATA_HMAC_COMPAREFAIL;
+                res = FKO_ERROR_INVALID_DATA_HMAC_COMPAREFAIL;	//不匹配则返回ERROE.
             }
         }
     }
@@ -240,7 +245,6 @@ int fko_set_spa_hmac(fko_ctx_t ctx,
     char *hmac_base64 = NULL;
     int   hmac_digest_str_len = 0;
     int   hmac_digest_len = 0;
-    int   res = FKO_ERROR_UNKNOWN ;
 
     /* Must be initialized
     */
@@ -253,9 +257,10 @@ int fko_set_spa_hmac(fko_ctx_t ctx,
     if(hmac_key_len < 0 || hmac_key_len > MAX_DIGEST_BLOCK_LEN)
         return(FKO_ERROR_INVALID_HMAC_KEY_LEN);
 
+	//根据hmac摘要类型进行相关操作。
     if(ctx->hmac_type == FKO_HMAC_MD5)
     {
-        res = hmac_md5(ctx->encrypted_msg,
+        hmac_md5(ctx->encrypted_msg,	//base64编码的Rijndael密文。
             ctx->encrypted_msg_len, hmac, hmac_key, hmac_key_len);
 
         hmac_digest_len     = MD5_DIGEST_LEN;
@@ -263,7 +268,7 @@ int fko_set_spa_hmac(fko_ctx_t ctx,
     }
     else if(ctx->hmac_type == FKO_HMAC_SHA1)
     {
-        res = hmac_sha1(ctx->encrypted_msg,
+        hmac_sha1(ctx->encrypted_msg,
             ctx->encrypted_msg_len, hmac, hmac_key, hmac_key_len);
 
         hmac_digest_len     = SHA1_DIGEST_LEN;
@@ -271,7 +276,7 @@ int fko_set_spa_hmac(fko_ctx_t ctx,
     }
     else if(ctx->hmac_type == FKO_HMAC_SHA256)
     {
-        res = hmac_sha256(ctx->encrypted_msg,
+        hmac_sha256(ctx->encrypted_msg,	//default
             ctx->encrypted_msg_len, hmac, hmac_key, hmac_key_len);
 
         hmac_digest_len     = SHA256_DIGEST_LEN;
@@ -279,7 +284,7 @@ int fko_set_spa_hmac(fko_ctx_t ctx,
     }
     else if(ctx->hmac_type == FKO_HMAC_SHA384)
     {
-        res = hmac_sha384(ctx->encrypted_msg,
+        hmac_sha384(ctx->encrypted_msg,
             ctx->encrypted_msg_len, hmac, hmac_key, hmac_key_len);
 
         hmac_digest_len     = SHA384_DIGEST_LEN;
@@ -287,46 +292,29 @@ int fko_set_spa_hmac(fko_ctx_t ctx,
     }
     else if(ctx->hmac_type == FKO_HMAC_SHA512)
     {
-        res = hmac_sha512(ctx->encrypted_msg,
+        hmac_sha512(ctx->encrypted_msg,
             ctx->encrypted_msg_len, hmac, hmac_key, hmac_key_len);
 
         hmac_digest_len     = SHA512_DIGEST_LEN;
         hmac_digest_str_len = SHA512_DIGEST_STR_LEN;
     }
-    else if(ctx->hmac_type == FKO_HMAC_SHA3_256)
-    {
-        res = hmac_sha3_256(ctx->encrypted_msg,
-            ctx->encrypted_msg_len, hmac, hmac_key, hmac_key_len);
-        hmac_digest_len     = SHA3_256_DIGEST_LEN;
-        hmac_digest_str_len = SHA3_256_DIGEST_STR_LEN;
-
-    }
-    else if(ctx->hmac_type == FKO_HMAC_SHA3_512)
-    {
-        res = hmac_sha3_512(ctx->encrypted_msg,
-            ctx->encrypted_msg_len, hmac, hmac_key, hmac_key_len);
-        hmac_digest_len     = SHA3_512_DIGEST_LEN;
-        hmac_digest_str_len = SHA3_512_DIGEST_STR_LEN;
-
-    }
-
-    if (res != FKO_SUCCESS)
-        return res;
 
     hmac_base64 = calloc(1, MD_HEX_SIZE(hmac_digest_len)+1);
     if (hmac_base64 == NULL)
         return(FKO_ERROR_MEMORY_ALLOCATION);
 
+	//将HMAC摘要编码为base64格式。
     b64_encode(hmac, hmac_base64, hmac_digest_len);
     strip_b64_eq(hmac_base64);
-
+	
     if(ctx->msg_hmac != NULL)
         free(ctx->msg_hmac);
 
+	//将base64编码过的HMAC密文存储。
     ctx->msg_hmac = strdup(hmac_base64);
 
     free(hmac_base64);
-
+	printf("msg_hmac:%s\n\n",ctx->msg_hmac);
     if(ctx->msg_hmac == NULL)
         return(FKO_ERROR_MEMORY_ALLOCATION);
 

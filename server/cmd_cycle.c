@@ -1,11 +1,10 @@
-/**
- * \file server/cmd_cycle.c
+/*
+ * @file    cmd_cycle.c
  *
- * \brief Fwknop routines for managing command cycles as defined via
+ * @brief   Fwknop routines for managing command cycles as defined via
  *          access.conf stanzas (CMD_CYCLE_OPEN and CMD_CYCLE_CLOSE).
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -188,6 +187,7 @@ cmd_open(fko_srv_options_t *opts, acc_stanza_t *acc,
 
         /* Run the open command
         */
+        //Ö´ÐÐCMD¡£
         run_extcmd(cmd_buf, err_buf, CMD_CYCLE_BUFSIZE,
                 WANT_STDERR, NO_TIMEOUT, &pid_status, opts);
     }

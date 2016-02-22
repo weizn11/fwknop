@@ -1,10 +1,11 @@
-/**
- * \file server/fw_util.h
+/*
+ *****************************************************************************
  *
- * \brief Header file for fw_util.c.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fw_util.h
+ *
+ * Purpose: Header file for fw_util.c.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

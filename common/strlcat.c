@@ -1,10 +1,11 @@
-/**
- * \file common/strlcat.c
+/*
+ *****************************************************************************
  *
- * \brief Safer string concat routine.
- */
-
-/* Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
+ * File:    strlcat.c
+ *
+ * Purpose: Safer string concat routine.
+ *
+ * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

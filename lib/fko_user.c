@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_user.c
+/*
+ *****************************************************************************
  *
- * \brief Set/Get the current username.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_user.c
+ *
+ * Purpose: Set/Get the current username.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -30,9 +31,7 @@
 #include "fko_common.h"
 #include "fko.h"
 
-#ifdef __MINGW32__
-  #include "../win32/getlogin.h"
-#elif WIN32
+#ifdef WIN32
   #include <getlogin.h>
 #endif
 

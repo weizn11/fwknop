@@ -1,16 +1,15 @@
-/**
- * \file server/replay_cache.c
+/*
+ *****************************************************************************
  *
- * \brief Cache packets for replay attack detection
+ * File:    replay_cache.c
  *
- *          Provides the functions to check for possible replay attacks
+ * Purpose: Provides the functions to check for possible replay attacks
  *          by using a cache of previously seen digests.  This cache is a
  *          simple file by default, but can be made to use a dbm solution
  *          (ndbm or gdbm in ndbm compatibility mode) file to store the digest
  *          of a previously received SPA packets.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -439,9 +438,11 @@ is_replay_file_cache(fko_srv_options_t *opts, char *digest)
             digest_list_ptr != NULL;
             digest_list_ptr = digest_list_ptr->next) {
 
+		//比较Server计算出的HMAC摘要和发送过来的是否一样。
         if (constant_runtime_cmp(digest_list_ptr->cache_info.digest,
-                    digest, digest_len) == 0) {
+                    digest, digest_len) == 0) {	
 
+		//发现重放攻击。
             replay_warning(opts, &(digest_list_ptr->cache_info));
 
             return(SPA_MSG_REPLAY);
@@ -535,7 +536,7 @@ is_replay_dbm_cache(fko_srv_options_t *opts, char *digest)
 
     int         digest_len, res = SPA_MSG_SUCCESS;
 
-    digest_len = strlen(digest);
+    digest_len = strlen(digest);	//摘要长度。
 
     db_key.dptr = digest;
     db_key.dsize = digest_len;
@@ -762,6 +763,7 @@ is_replay(fko_srv_options_t *opts, char *digest)
 #else
 
 #if USE_FILE_CACHE
+	//比较摘要。
     return is_replay_file_cache(opts, digest);
 #else
     return is_replay_dbm_cache(opts, digest);

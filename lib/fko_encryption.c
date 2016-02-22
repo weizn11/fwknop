@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_encryption.c
+/*
+ *****************************************************************************
  *
- * \brief Set/Get the spa encryption type.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_encryption.c
+ *
+ * Purpose: Set/Get the spa encryption type.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -84,7 +85,7 @@ _rijndael_encrypt(fko_ctx_t ctx, const char *enc_key, const int enc_key_len)
     if(plaintext == NULL)
         return(FKO_ERROR_MEMORY_ALLOCATION);
 
-    pt_len = snprintf(plaintext, pt_len, "%s:%s", ctx->encoded_msg, ctx->digest);
+    pt_len = snprintf(plaintext, pt_len, "%s:%s", ctx->encoded_msg, ctx->digest);	//将消息和摘要结合在一起进行Rijndael算法加密。
 
     if(! is_valid_pt_msg_len(pt_len))
     {
@@ -105,6 +106,7 @@ _rijndael_encrypt(fko_ctx_t ctx, const char *enc_key, const int enc_key_len)
             return(FKO_ERROR_ZERO_OUT_DATA);
     }
 
+	//加盐后进行Rijndael加密。
     cipher_len = rij_encrypt(
         (unsigned char*)plaintext, pt_len,
         (char*)enc_key, enc_key_len,
@@ -123,15 +125,17 @@ _rijndael_encrypt(fko_ctx_t ctx, const char *enc_key, const int enc_key_len)
             return(FKO_ERROR_ZERO_OUT_DATA);
     }
 
+	//对加密完的密文进行base64编码。
     b64_encode(ciphertext, b64ciphertext, cipher_len);
-    strip_b64_eq(b64ciphertext);
+    strip_b64_eq(b64ciphertext);	//截断等号。
 
     if(ctx->encrypted_msg != NULL)
         zero_free_rv = zero_free(ctx->encrypted_msg,
-                strnlen(ctx->encrypted_msg, MAX_SPA_ENCODED_MSG_SIZE));
-
+                strnlen(ctx->encrypted_msg, MAX_SPA_ENCODED_MSG_SIZE));\
+                
+	//最终是base64编码的密文。
     ctx->encrypted_msg = strdup(b64ciphertext);
-
+	printf("encrypted_msg:%s\n\n",ctx->encrypted_msg);
     /* Clean-up
     */
     if(zero_free(plaintext, pt_len) != FKO_SUCCESS)
@@ -587,8 +591,9 @@ fko_encrypt_spa_data(fko_ctx_t ctx, const char * const enc_key,
     /* If there is no encoded data or the SPA data has been modified,
      * go ahead and re-encode here.
     */
+    //如果SPA数据未编码或被修改则进行编码处理。
     if(ctx->encoded_msg == NULL || FKO_IS_SPA_DATA_MODIFIED(ctx))
-        res = fko_encode_spa_data(ctx);
+        res = fko_encode_spa_data(ctx);		//生成encoded_msg和对应的digest.
 
     if(res != FKO_SUCCESS)
         return(res);
@@ -602,11 +607,12 @@ fko_encrypt_spa_data(fko_ctx_t ctx, const char * const enc_key,
 
     /* Encrypt according to type and return...
     */
+    //根据类型加密。
     if(ctx->encryption_type == FKO_ENCRYPTION_RIJNDAEL)
     {
         if(enc_key == NULL)
             return(FKO_ERROR_INVALID_KEY_LEN);
-        res = _rijndael_encrypt(ctx, enc_key, enc_key_len);
+        res = _rijndael_encrypt(ctx, enc_key, enc_key_len);	//通过之前生成的Rijndael密钥(enc_key)进行加密。 ctx->encrypted_msg
     }
     else if(ctx->encryption_type == FKO_ENCRYPTION_GPG)
 #if HAVE_LIBGPGME

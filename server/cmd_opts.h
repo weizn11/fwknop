@@ -1,10 +1,11 @@
-/**
- * \file server/cmd_opts.h
+/*
+ ******************************************************************************
  *
- * \brief Header file for fwknopd command line options.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    cmd_opts.h
+ *
+ * Purpose: Header file for fwknopd command line options.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -61,15 +62,6 @@ static char *config_map[NUMBER_OF_CONFIG_ENTRIES] = {
     "ENABLE_UDP_SERVER",
     "UDPSERV_PORT",
     "UDPSERV_SELECT_TIMEOUT",
-#if USE_LIBNETFILTER_QUEUE
-    "ENABLE_NFQ_CAPTURE",
-    "NFQ_INTERFACE",
-    "NFQ_PORT",
-    "NFQ_TABLE",
-    "NFQ_CHAIN",
-    "NFQ_QUEUE_NUMBER",
-    "NFQ_LOOP_SLEEP",
-#endif
     "LOCALE",
     "SYSLOG_IDENTITY",
     "SYSLOG_FACILITY",
@@ -80,7 +72,6 @@ static char *config_map[NUMBER_OF_CONFIG_ENTRIES] = {
     //"ENABLE_EXT_CMD_PREFIX",
     //"EXT_CMD_PREFIX",
     "ENABLE_DESTINATION_RULE",
-    "ENABLE_NAT_DNS",
 #if FIREWALL_FIREWALLD
     "ENABLE_FIREWD_FORWARDING",
     "ENABLE_FIREWD_LOCAL_NAT",
@@ -178,11 +169,7 @@ enum {
 
 /* Our getopt_long options string.
 */
-#if USE_LIBNETFILTER_QUEUE
-  #define GETOPTS_OPTION_STRING "Aa:c:C:d:Dfhi:Kl:nO:p:P:Rr:StUvV"
-#else
-  #define GETOPTS_OPTION_STRING "Aa:c:C:d:Dfhi:Kl:O:p:P:Rr:StUvV"
-#endif
+#define GETOPTS_OPTION_STRING "Aa:c:C:d:Dfhi:Kl:O:p:P:Rr:StUvV"
 
 /* Our program command-line options...
 */
@@ -218,9 +205,6 @@ static struct option cmd_opts[] =
     {"no-firewd-check-support", 0, NULL, FIREWD_DISABLE_CHECK_SUPPORT },
     {"no-ipt-check-support",    0, NULL, IPT_DISABLE_CHECK_SUPPORT },
     {"locale",                  1, NULL, 'l' },
-#if USE_LIBNETFILTER_QUEUE
-    {"nfq-capture",             0, NULL, 'n' },
-#endif
     {"rotate-digest-cache",     0, NULL, ROTATE_DIGEST_CACHE },
     {"override-config",         1, NULL, 'O' },
     {"pcap-file",               1, NULL, PCAP_FILE },

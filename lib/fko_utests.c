@@ -1,28 +1,16 @@
-/**
- * \file lib/fko_utests.c
- *
- * \brief Main CUnit test function for libfko
- */
-
 #include "CUnit/Basic.h"
 
 #include "fko.h"
 
-#include "fko_util.h"
 /**
  * Register test suites from FKO files.
- *
+ * 
  * The module should fetch functions according to used modules. All of them follow the same
  * naming convention.
  */
 static void register_test_suites(void)
 {
     register_ts_fko_decode();
-    register_ts_hmac_test();
-    register_ts_digest_test();
-    register_ts_aes_test();
-    register_utils_test();
-    register_base64_test();
 }
 
 /* The main() function for setting up and running the tests.

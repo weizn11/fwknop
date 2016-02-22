@@ -1,10 +1,11 @@
-/**
- * \file server/fw_util_iptables.c
+/*
+ *****************************************************************************
  *
- * \brief Fwknop routines for managing iptables firewall rules.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fw_util_iptables.c
+ *
+ * Purpose: Fwknop routines for managing iptables firewall rules.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -694,72 +695,6 @@ delete_all_chains(const fko_srv_options_t * const opts)
             log_msg(LOG_ERR, "delete_all_chains() Error %i from cmd:'%s': %s",
                     res, cmd_buf, err_buf);
     }
-
-#if USE_LIBNETFILTER_QUEUE
-    if(opts->enable_nfq_capture)
-    {
-        zero_cmd_buffers();
-
-        /* Delete the rule to direct traffic to the NFQ chain.
-        */
-        snprintf(cmd_buf, CMD_BUFSIZE-1, "%s " IPT_DEL_RULE_ARGS,
-            fwc.fw_command,
-            opts->config[CONF_NFQ_TABLE],
-            "INPUT",
-            1
-        );
-        res = run_extcmd(cmd_buf, err_buf, CMD_BUFSIZE, WANT_STDERR,
-                NO_TIMEOUT, &pid_status, opts);
-
-        if (opts->verbose)
-            log_msg(LOG_INFO, "delete_all_chains() CMD: '%s' (res: %d, err: %s)",
-                cmd_buf, res, err_buf);
-
-        /* Expect full success on this */
-        if(! EXTCMD_IS_SUCCESS(res))
-            log_msg(LOG_ERR, "Error %i from cmd:'%s': %s", res, cmd_buf, err_buf);
-
-        zero_cmd_buffers();
-
-        /* Flush the NFQ chain
-        */
-        snprintf(cmd_buf, CMD_BUFSIZE-1, "%s " IPT_FLUSH_CHAIN_ARGS,
-            fwc.fw_command,
-            opts->config[CONF_NFQ_TABLE],
-            opts->config[CONF_NFQ_CHAIN]
-        );
-        res = run_extcmd(cmd_buf, err_buf, CMD_BUFSIZE, WANT_STDERR,
-                NO_TIMEOUT, &pid_status, opts);
-
-        if (opts->verbose)
-            log_msg(LOG_INFO, "delete_all_chains() CMD: '%s' (res: %d, err: %s)",
-                cmd_buf, res, err_buf);
-
-        /* Expect full success on this */
-        if(! EXTCMD_IS_SUCCESS(res))
-            log_msg(LOG_ERR, "Error %i from cmd:'%s': %s", res, cmd_buf, err_buf);
-
-        zero_cmd_buffers();
-
-        /* Delete the NF_QUEUE chains and rules
-        */
-        snprintf(cmd_buf, CMD_BUFSIZE-1, "%s " IPT_DEL_CHAIN_ARGS,
-            fwc.fw_command,
-            opts->config[CONF_NFQ_TABLE],
-            opts->config[CONF_NFQ_CHAIN]
-        );
-        res = run_extcmd(cmd_buf, err_buf, CMD_BUFSIZE, WANT_STDERR,
-                NO_TIMEOUT, &pid_status, opts);
-
-        if (opts->verbose)
-            log_msg(LOG_INFO, "delete_all_chains() CMD: '%s' (res: %d, err: %s)",
-                cmd_buf, res, err_buf);
-
-        /* Expect full success on this */
-        if(! EXTCMD_IS_SUCCESS(res))
-            log_msg(LOG_ERR, "Error %i from cmd:'%s': %s", res, cmd_buf, err_buf);
-    }
-#endif
     return;
 }
 
@@ -819,9 +754,6 @@ static int
 create_fw_chains(const fko_srv_options_t * const opts)
 {
     int     i, got_err = 0;
-#if USE_LIBNETFILTER_QUEUE
-    int     res = 0;
-#endif
 
     for(i=0; i < NUM_FWKNOP_ACCESS_TYPES; i++)
     {
@@ -831,100 +763,6 @@ create_fw_chains(const fko_srv_options_t * const opts)
         got_err += mk_chain(opts, i);
     }
 
-#if USE_LIBNETFILTER_QUEUE
-    if(opts->enable_nfq_capture)
-    {
-        zero_cmd_buffers();
-
-        /* Create the NF_QUEUE chains and rules
-        */
-        snprintf(cmd_buf, CMD_BUFSIZE-1, "%s " IPT_NEW_CHAIN_ARGS,
-            fwc.fw_command,
-            opts->config[CONF_NFQ_TABLE],
-            opts->config[CONF_NFQ_CHAIN]
-        );
-        res = run_extcmd(cmd_buf, err_buf, CMD_BUFSIZE, WANT_STDERR,
-                         NO_TIMEOUT, &pid_status, opts);
-
-        if (opts->verbose)
-            log_msg(LOG_INFO, "create_fw_chains() CMD: '%s' (res: %d, err: %s)",
-                cmd_buf, res, err_buf);
-
-        /* Expect full success on this */
-        if(! EXTCMD_IS_SUCCESS(res))
-        {
-            log_msg(LOG_ERR, "Error %i from cmd:'%s': %s", res, cmd_buf, err_buf);
-            got_err++;
-        }
-
-        zero_cmd_buffers();
-
-        /* Create the rule to direct traffic to the NFQ chain.
-        */
-        snprintf(cmd_buf, CMD_BUFSIZE-1, "%s " IPT_ADD_JUMP_RULE_ARGS,
-            fwc.fw_command,
-            opts->config[CONF_NFQ_TABLE],
-            "INPUT",
-            1,
-            opts->config[CONF_NFQ_CHAIN]
-        );
-        res = run_extcmd(cmd_buf, err_buf, CMD_BUFSIZE, WANT_STDERR,
-                         NO_TIMEOUT, &pid_status, opts);
-
-        if (opts->verbose)
-            log_msg(LOG_INFO, "create_fw_chains() CMD: '%s' (res: %d, err: %s)",
-                cmd_buf, res, err_buf);
-
-        /* Expect full success on this */
-        if(! EXTCMD_IS_SUCCESS(res))
-        {
-            log_msg(LOG_ERR, "Error %i from cmd:'%s': %s", res, cmd_buf, err_buf);
-            got_err++;
-        }
-
-        zero_cmd_buffers();
-
-        /* Create the rule to direct SPA packets to the queue.
-         * If an interface is specified use the "_WITH_IF" version
-         * of the command.
-        */
-        if(strlen(opts->config[CONF_NFQ_INTERFACE]) > 0)
-        {
-            snprintf(cmd_buf, CMD_BUFSIZE-1, "%s " IPT_NFQ_ADD_ARGS_WITH_IF,
-                fwc.fw_command,
-                opts->config[CONF_NFQ_TABLE],
-                opts->config[CONF_NFQ_CHAIN],
-                opts->config[CONF_NFQ_INTERFACE],
-                opts->config[CONF_NFQ_PORT],
-                opts->config[CONF_NFQ_QUEUE_NUMBER]
-            );
-        }
-        else
-        {
-            snprintf(cmd_buf, CMD_BUFSIZE-1, "%s " IPT_NFQ_ADD_ARGS,
-                fwc.fw_command,
-                opts->config[CONF_NFQ_TABLE],
-                opts->config[CONF_NFQ_CHAIN],
-                opts->config[CONF_NFQ_PORT],
-                opts->config[CONF_NFQ_QUEUE_NUMBER]
-            );
-        }
-
-        res = run_extcmd(cmd_buf, err_buf, CMD_BUFSIZE, WANT_STDERR,
-                NO_TIMEOUT, &pid_status, opts);
-
-        if (opts->verbose)
-            log_msg(LOG_INFO, "create_fw_chains() CMD: '%s' (res: %d, err: %s)",
-                cmd_buf, res, err_buf);
-
-        /* Expect full success on this */
-        if(! EXTCMD_IS_SUCCESS(res))
-        {
-            log_msg(LOG_ERR, "Error %i from cmd:'%s': %s", res, cmd_buf, err_buf);
-            got_err++;
-        }
-    }
-#endif
     return(got_err);
 }
 
@@ -1467,8 +1305,6 @@ process_spa_request(const fko_srv_options_t * const opts,
         const acc_stanza_t * const acc, spa_data_t * const spadat)
 {
     char            nat_ip[MAX_IPV4_STR_LEN] = {0};
-    char            nat_dst[MAX_HOSTNAME_LEN] = {0};
-
     unsigned int    nat_port = 0;
     unsigned int    fst_proto;
     unsigned int    fst_port;
@@ -1483,7 +1319,6 @@ process_spa_request(const fko_srv_options_t * const opts,
 
     char            *ndx = NULL;
     int             res = 0, is_err;
-    int             str_len;
     time_t          now;
     unsigned int    exp_ts;
 
@@ -1530,38 +1365,14 @@ process_spa_request(const fko_srv_options_t * const opts,
         else
         {
             ndx = strchr(spadat->nat_access, ',');
-            str_len = strcspn(spadat->nat_access, ",");
-            if((ndx != NULL) && (str_len <= MAX_HOSTNAME_LEN))
+            if(ndx != NULL)
             {
-                strlcpy(nat_dst, spadat->nat_access, str_len+1);
-                if((! is_valid_ipv4_addr(nat_dst)))
+                strlcpy(nat_ip, spadat->nat_access, (ndx-spadat->nat_access)+1);
+                if (! is_valid_ipv4_addr(nat_ip))
                 {
-                    if(strncasecmp(opts->config[CONF_ENABLE_NAT_DNS], "Y", 1)==0)
-                    {
-                        if (ipv4_resolve(nat_dst, nat_ip) == 0)
-                        {
-                            log_msg(LOG_INFO, "Resolved NAT IP in SPA message");
-                        }
-                        else
-                        {
-                            log_msg(LOG_INFO, "Unable to resolve Hostname in NAT SPA message");
-                            free_acc_port_list(port_list);
-                            res = is_err;
-                            return res;
-                        }
-                    }
-                    else
-                    {
-                        log_msg(LOG_INFO, "Received Hostname in NAT SPA message, but hostname is disabled.");
-                        free_acc_port_list(port_list);
-                        res = is_err;
-                        return res;
-
-                    }
-                }
-                else
-                {
-                    strlcpy(nat_ip, nat_dst, MAX_IPV4_STR_LEN);
+                    log_msg(LOG_INFO, "Invalid NAT IP in SPA message");
+                    free_acc_port_list(port_list);
+                    return res;
                 }
 
                 nat_port = strtol_wrapper(ndx+1, 0, MAX_PORT,
@@ -1573,13 +1384,6 @@ process_spa_request(const fko_srv_options_t * const opts,
                     res = is_err;
                     return res;
                 }
-            }
-            else
-            {
-                log_msg(LOG_INFO, "Invalid NAT IP in SPA message");
-                free_acc_port_list(port_list);
-                res = is_err;
-                return res;
             }
         }
 

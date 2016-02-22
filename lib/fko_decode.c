@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_decode.c
+/*
+ *****************************************************************************
  *
- * \brief Decode an FKO SPA message after decryption.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_decode.c
+ *
+ * Purpose: Decode an FKO SPA message after decryption.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -599,7 +600,7 @@ DECLARE_UTEST(num_fields, "Count the number of SPA fields in a SPA packet")
 
     /* Zeroing the spa packet */
     memset(spa_packet, 0, sizeof(spa_packet));
-
+    
     /* Check we are able to count the number of SPA fields */
     for(ix_field=0 ; ix_field<=MAX_SPA_FIELDS+2 ; ix_field++)
     {
@@ -623,7 +624,7 @@ DECLARE_UTEST(last_field, "Count the number of bytes to the last :")
 
     /* Zeroing the spa packet */
     memset(spa_packet, 0, sizeof(spa_packet));
-
+    
     /* Check for a valid count when the number of field is less than MAX_SPA_FIELDS  */
     CU_ASSERT(last_field("a:") == 2);
     CU_ASSERT(last_field("ab:abc:") == 7);

@@ -1,11 +1,12 @@
-/**
- * \file server/log_msg.c
+/*
+ *****************************************************************************
  *
- * \brief General logging routine that can write to syslog and/or stderr
+ * File:    log_msg.c
+ *
+ * Purpose: General logging routine that can write to syslog and/or stderr
  *          and can take varibale number of args.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

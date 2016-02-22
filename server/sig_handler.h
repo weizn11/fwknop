@@ -1,10 +1,11 @@
-/**
- * \file server/sig_handler.h
+/*
+ *****************************************************************************
  *
- * \brief Header file for sig_handler functions and data.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    sig_handler.h
+ *
+ * Purpose: Header file for sig_handler functions and data.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

@@ -1,10 +1,11 @@
-/**
- * \file lib/md5.c
+/*
+ *****************************************************************************
  *
- * \brief Implementation of the MD5 message-digest algorithm for libfwknop.
- */
-
-/* This code implements the MD5 message-digest algorithm.
+ * File:    md5.c
+ *
+ * Purpose: Implementation of the MD5 message-digest algorithm for libfwknop.
+ *
+ * This code implements the MD5 message-digest algorithm.
  *
  * The algorithm is due to Ron Rivest. This code was
  * written by Colin Plumb in 1993, no copyright is claimed.
@@ -118,7 +119,7 @@ MD5Update(MD5Context *ctx, unsigned char *buf, unsigned len)
     memcpy(ctx->in, buf, len);
 }
 
-/* Final wrapup - pad to 64-byte boundary with the bit pattern
+/* Final wrapup - pad to 64-byte boundary with the bit pattern 
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 void
@@ -272,6 +273,6 @@ MD5Transform(uint32_t buf[4], uint32_t in[16])
     buf[1] += b;
     buf[2] += c;
     buf[3] += d;
-}
+} 
 
 /***EOF***/

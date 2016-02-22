@@ -1,10 +1,11 @@
-/**
- * \file server/udp_server.c
+/*
+ *****************************************************************************
  *
- * \brief Collect SPA packets via a UDP server.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    udp_server.c
+ *
+ * Purpose: Collect SPA packets via a UDP server.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -76,6 +77,7 @@ run_udp_server(fko_srv_options_t *opts)
     /* Make our main socket non-blocking so we don't have to be stuck on
      * listening for incoming datagrams.
     */
+    //设置非阻塞socket
     if((sfd_flags = fcntl(s_sock, F_GETFL, 0)) < 0)
     {
         log_msg(LOG_ERR, "run_udp_server: fcntl F_GETFL error: %s",
@@ -113,6 +115,7 @@ run_udp_server(fko_srv_options_t *opts)
      * the number of signals that were *not* set.  Those that were not set
      * will be listed in the log/stderr output.
     */
+    //设置信号处理函数。
     if(set_sig_handlers() > 0)
         log_msg(LOG_ERR, "Errors encountered when setting signal handlers.");
 
@@ -124,6 +127,7 @@ run_udp_server(fko_srv_options_t *opts)
     {
         if(sig_do_stop())
         {
+        	//检查是否有终止信号。
             if(opts->verbose)
                 log_msg(LOG_INFO,
                         "udp_server: terminating signal received, will stop.");
@@ -134,6 +138,7 @@ run_udp_server(fko_srv_options_t *opts)
         {
             /* Check for any expired firewall rules and deal with them.
             */
+            //检查并处理过期的防火墙规则。
             if(opts->enable_fw)
             {
                 if(opts->rules_chk_threshold > 0)
@@ -186,6 +191,7 @@ run_udp_server(fko_srv_options_t *opts)
         if(selval == 0)
             continue;
 
+	//端口上有事件发生。
         if(! FD_ISSET(s_sock, &sfd_set))
             continue;
 
@@ -212,14 +218,16 @@ run_udp_server(fko_srv_options_t *opts)
         {
             /* Copy the packet for SPA processing
             */
-            strlcpy((char *)opts->spa_pkt.packet_data, dgram_msg, pkt_len+1);
+            strlcpy((char *)opts->spa_pkt.packet_data, dgram_msg, pkt_len+1);	//复制原始数据报。
+
+		//解析数据报字段。
             opts->spa_pkt.packet_data_len = pkt_len;
             opts->spa_pkt.packet_proto    = IPPROTO_UDP;
             opts->spa_pkt.packet_src_ip   = caddr.sin_addr.s_addr;
             opts->spa_pkt.packet_dst_ip   = saddr.sin_addr.s_addr;
             opts->spa_pkt.packet_src_port = ntohs(caddr.sin_port);
             opts->spa_pkt.packet_dst_port = ntohs(saddr.sin_port);
-
+		//处理数据报。
             incoming_spa(opts);
         }
 

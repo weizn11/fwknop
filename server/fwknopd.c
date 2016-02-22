@@ -1,7 +1,9 @@
-/**
- * \file server/fwknopd.c
+/*
+ *****************************************************************************
  *
- * \brief An implementation of an fwknop server.
+ * File:    fwknopd.c
+ *
+ * Purpose: An implementation of an fwknop server.
  *
  *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
@@ -37,9 +39,6 @@
 #include "tcp_server.h"
 #include "udp_server.h"
 
-#if USE_LIBNETFILTER_QUEUE
-  #include "nfq_capture.h"
-#endif
 #if USE_LIBPCAP
   #include "pcap_capture.h"
 #endif
@@ -83,6 +82,7 @@ main(int argc, char **argv)
     {
         /* Handle command line
         */
+        //处理启动参数。
         config_init(&opts, argc, argv);
 
 #if HAVE_LIBFIU
@@ -159,6 +159,7 @@ main(int argc, char **argv)
         }
         /* Process the access.conf file, but only if no access.conf folder was specified.
         */
+        //读入access.conf中的数据。
         else if (parse_access_file(&opts, opts.config[CONF_ACCESS_FILE], &depth) != EXIT_SUCCESS)
         {
             clean_exit(&opts, NO_FW_CLEANUP, EXIT_FAILURE);
@@ -166,6 +167,7 @@ main(int argc, char **argv)
 
         /* We must have at least one valid access stanza at this point
         */
+        //检查有没有合法的stanza。
         if(! valid_access_stanzas(opts.acc_stanzas))
         {
             log_msg(LOG_ERR, "Fatal, could not find any valid access.conf stanzas");
@@ -235,18 +237,9 @@ main(int argc, char **argv)
         if(!opts.test && opts.enable_fw && (fw_initialize(&opts) != 1))
             clean_exit(&opts, FW_CLEANUP, EXIT_FAILURE);
 
-#if USE_LIBNETFILTER_QUEUE
-        /* If we are to acquire SPA data via a libnetfilter_queue, start it up here.
-        */
-        if(opts.enable_nfq_capture ||
-                strncasecmp(opts.config[CONF_ENABLE_NFQ_CAPTURE], "Y", 1) == 0)
-        {
-            nfq_capture(&opts);
-        }
-        else
-#endif
         /* If we are to acquire SPA data via a UDP socket, start it up here.
         */
+        //启动UDP监听。
         if(opts.enable_udp_server ||
                 strncasecmp(opts.config[CONF_ENABLE_UDP_SERVER], "Y", 1) == 0)
         {
@@ -282,14 +275,9 @@ main(int argc, char **argv)
         /* Intiate pcap capture mode...
         */
         if(!opts.enable_udp_server
-            && strncasecmp(opts.config[CONF_ENABLE_UDP_SERVER], "N", 1) == 0)
+                && strncasecmp(opts.config[CONF_ENABLE_UDP_SERVER], "N", 1) == 0)
         {
             pcap_capture(&opts);
-        }
-        else
-        {
-            log_msg(LOG_ERR, "No available capture mode specified.  Aborting.");
-            clean_exit(&opts, FW_CLEANUP, EXIT_FAILURE);
         }
 #endif
 
@@ -879,7 +867,7 @@ daemonize_process(fko_srv_options_t * const opts)
 
     /* Start a new session
     */
-    setsid();
+    setsid();	//子进程成立新回话。
 
     /* Create the PID file (or be blocked by an existing one).
     */

@@ -1,10 +1,11 @@
-/**
- * \file server/fwknopd_common.h
+/*
+ ******************************************************************************
  *
- * \brief Header file for fwknopd source files.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fwknopd_common.h
+ *
+ * Purpose: Header file for fwknopd source files.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -94,7 +95,6 @@
 #define DEF_RULES_CHECK_THRESHOLD       "20"
 #define DEF_MAX_SNIFF_BYTES             "1500"
 #define DEF_GPG_HOME_DIR                "/root/.gnupg"
-#define DEF_ENABLE_NAT_DNS              "Y"
 #ifdef  GPG_EXE
   #define DEF_GPG_EXE                   GPG_EXE
 #else
@@ -112,16 +112,6 @@
   #define DEF_ENABLE_UDP_SERVER           "N"
 #else
   #define DEF_ENABLE_UDP_SERVER           "Y"
-#endif
-#if USE_LIBNETFILTER_QUEUE
-  #define DEF_ENABLE_NFQ_CAPTURE          "N"
-  #define DEF_NFQ_INTERFACE               ""
-  #define DEF_NFQ_PORT                    "62201"
-  #define DEF_NFQ_TABLE                   "mangle"
-  #define DEF_NFQ_CHAIN                   "FWKNOP_NFQ"
-  #define DEF_NFQ_QUEUE_NUMBER            "1"
-  #define DEF_CONF_NFQ_LOOP_SLEEP         "500000" /* half a second (in microseconds) */
-
 #endif
 #define DEF_UDPSERV_PORT                "62201"
 #define DEF_UDPSERV_SELECT_TIMEOUT      "500000" /* half a second (in microseconds) */
@@ -221,6 +211,7 @@
 #define MAX_PCAP_FILTER_LEN     1024
 #define MAX_IFNAME_LEN          128
 #define MAX_SPA_PACKET_LEN      1500 /* --DSS check this? */
+#define MAX_HOSTNAME_LEN        64
 #define MAX_DECRYPTED_SPA_LEN   1024
 
 /* The minimum possible valid SPA data size.
@@ -259,15 +250,6 @@ enum {
     CONF_ENABLE_UDP_SERVER,
     CONF_UDPSERV_PORT,
     CONF_UDPSERV_SELECT_TIMEOUT,
-#if USE_LIBNETFILTER_QUEUE
-    CONF_ENABLE_NFQ_CAPTURE,
-    CONF_NFQ_INTERFACE,
-    CONF_NFQ_PORT,
-    CONF_NFQ_TABLE,
-    CONF_NFQ_CHAIN,
-    CONF_NFQ_QUEUE_NUMBER,
-    CONF_NFQ_LOOP_SLEEP,
-#endif
     CONF_LOCALE,
     CONF_SYSLOG_IDENTITY,
     CONF_SYSLOG_FACILITY,
@@ -279,7 +261,6 @@ enum {
     //CONF_ENABLE_EXT_CMD_PREFIX,
     //CONF_EXT_CMD_PREFIX,
     CONF_ENABLE_DESTINATION_RULE,
-    CONF_ENABLE_NAT_DNS,
 #if FIREWALL_FIREWALLD
     CONF_ENABLE_FIREWD_FORWARDING,
     CONF_ENABLE_FIREWD_LOCAL_NAT,
@@ -381,6 +362,7 @@ typedef struct acc_string_list
 */
 typedef struct acc_stanza
 {
+	//从access.conf中解析出的stanza.
     char                *source;
     acc_int_list_t      *source_list;
     char                *destination;
@@ -594,11 +576,11 @@ typedef struct spa_pkt_info
 {
     unsigned int    packet_data_len;
     unsigned int    packet_proto;
-    unsigned int    packet_src_ip;
-    unsigned int    packet_dst_ip;
+    unsigned int    packet_src_ip;	//数据包的来源地址。
+    unsigned int    packet_dst_ip;	//数据包的目的地址。
     unsigned short  packet_src_port;
     unsigned short  packet_dst_port;
-    unsigned char   packet_data[MAX_SPA_PACKET_LEN+1];
+    unsigned char   packet_data[MAX_SPA_PACKET_LEN+1];		//接收到的原始数据包。
 } spa_pkt_info_t;
 
 /* Struct for (processed and verified) SPA data used by the server.
@@ -612,7 +594,6 @@ typedef struct spa_data
     char           *spa_message;
     char            spa_message_src_ip[MAX_IPV4_STR_LEN];
     char            pkt_source_ip[MAX_IPV4_STR_LEN];
-    char            pkt_source_xff_ip[MAX_IPV4_STR_LEN];
     char            pkt_destination_ip[MAX_IPV4_STR_LEN];
     char            spa_message_remain[1024]; /* --DSS FIXME: arbitrary bounds */
     char           *nat_access;
@@ -648,7 +629,6 @@ typedef struct fko_srv_options
     unsigned char   afl_fuzzing;        /* SPA pkts from stdin for AFL fuzzing */
     unsigned char   verbose;            /* Verbose mode flag */
     unsigned char   enable_udp_server;  /* Enable UDP server mode */
-    unsigned char   enable_nfq_capture; /* Enable Netfilter Queue capture mode */
     unsigned char   enable_fw;          /* Command modes by themselves don't
                                            need firewall support. */
 
@@ -702,7 +682,7 @@ typedef struct fko_srv_options
     int            max_sniff_bytes;
     int            max_spa_packet_age;
 
-    acc_stanza_t   *acc_stanzas;       /* List of access stanzas */
+    acc_stanza_t   *acc_stanzas;       /* stanzas链表 */
 
     /* Firewall config info.
     */

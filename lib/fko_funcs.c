@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_funcs.c
+/*
+ *****************************************************************************
  *
- * \brief General utility functions for libfko
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_funcs.c
+ *
+ * Purpose: General utility functions for libfko
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -72,6 +73,7 @@ fko_new(fko_ctx_t *r_ctx)
 
     /* Rand value.
     */
+    //生成随机的rand_val
     res = fko_set_rand_value(ctx, NULL);
     if(res != FKO_SUCCESS)
     {
@@ -164,6 +166,7 @@ fko_new_with_data(fko_ctx_t *r_ctx, const char * const enc_msg,
     int encryption_mode, const char * const hmac_key,
     const int hmac_key_len, const int hmac_type)
 {
+	//enc_msg:SPA原始数据报。
     fko_ctx_t   ctx = NULL;
     int         res = FKO_SUCCESS; /* Are we optimistic or what? */
     int         enc_msg_len;
@@ -198,6 +201,7 @@ fko_new_with_data(fko_ctx_t *r_ctx, const char * const enc_msg,
 
     /* First, add the data to the context.
     */
+    //将ctx->encrypted_msg设置为原始数据报。
     ctx->encrypted_msg     = strdup(enc_msg);
     ctx->encrypted_msg_len = enc_msg_len;
 
@@ -209,6 +213,7 @@ fko_new_with_data(fko_ctx_t *r_ctx, const char * const enc_msg,
 
     /* Default Encryption Mode (Rijndael in CBC mode)
     */
+    //设置默认的加密类型。
     ctx->initval = FKO_CTX_INITIALIZED;
     res = fko_set_spa_encryption_mode(ctx, encryption_mode);
     if(res != FKO_SUCCESS)
@@ -220,6 +225,7 @@ fko_new_with_data(fko_ctx_t *r_ctx, const char * const enc_msg,
 
     /* HMAC digest type
     */
+    //设置HMAC摘要类型。
     res = fko_set_spa_hmac_type(ctx, hmac_type);
     if(res != FKO_SUCCESS)
     {
@@ -230,8 +236,10 @@ fko_new_with_data(fko_ctx_t *r_ctx, const char * const enc_msg,
 
     /* Check HMAC if the access stanza had an HMAC key
     */
+    //get_raw_digest()不执行此步。
+    //校验数据包的完整性。
     if(hmac_key_len > 0 && hmac_key != NULL)
-        res = fko_verify_hmac(ctx, hmac_key, hmac_key_len);
+        res = fko_verify_hmac(ctx, hmac_key, hmac_key_len);		//剔除encrypted_msg中的HMAC摘要，校验HMAC摘要是否一致。
     if(res != FKO_SUCCESS)
     {
         fko_destroy(ctx);
@@ -245,8 +253,11 @@ fko_new_with_data(fko_ctx_t *r_ctx, const char * const enc_msg,
 
     /* If a decryption key is provided, go ahead and decrypt and decode.
     */
+    //get_raw_digest()不执行此步。
+    //如果提供了解密密钥则解密。
     if(dec_key != NULL)
     {
+    		//解密Rijndael加密的encrypted_msg.
         res = fko_decrypt_spa_data(ctx, dec_key, dec_key_len);
 
         if(res != FKO_SUCCESS)
@@ -269,6 +280,7 @@ fko_new_with_data(fko_ctx_t *r_ctx, const char * const enc_msg,
 
     return(res);
 }
+
 
 /* Destroy a context and free its resources
 */
@@ -364,10 +376,6 @@ fko_destroy(fko_ctx_t ctx)
 
     return(zero_free_rv);
 }
-
-/* Generate Rijndael and HMAC keys from /dev/random and base64
- * encode them
-*/
 int
 fko_key_gen(char * const key_base64, const int key_len,
         char * const hmac_key_base64, const int hmac_key_len,
@@ -403,16 +411,19 @@ fko_key_gen(char * const key_base64, const int key_len,
     if((hmac_klen < 1) || (hmac_klen > SHA512_BLOCK_LEN))
         return(FKO_ERROR_INVALID_DATA_FUNCS_GEN_HMACLEN_VALIDFAIL);
 
+	//获取一串随机数作为密钥。
     get_random_data(key, klen);
     get_random_data(hmac_key, hmac_klen);
 
-    b64_len = b64_encode(key, key_base64, klen);
+    b64_len = b64_encode(key, key_base64, klen);	//通过BASE64编码Rijndael密钥。
     if(b64_len < klen)
         return(FKO_ERROR_INVALID_DATA_FUNCS_GEN_KEY_ENCODEFAIL);
 
     b64_len = b64_encode(hmac_key, hmac_key_base64, hmac_klen);
     if(b64_len < hmac_klen)
         return(FKO_ERROR_INVALID_DATA_FUNCS_GEN_HMAC_ENCODEFAIL);
+
+	printf("key value:%s\nhmac_key:%s\n\n",key_base64,hmac_key_base64);
 
     return(FKO_SUCCESS);
 }
@@ -478,6 +489,7 @@ fko_spa_data_final(fko_ctx_t ctx,
     if(enc_key_len < 0)
         return(FKO_ERROR_INVALID_KEY_LEN);
 
+	//计算加盐的Rijndael密文，生成到ctx->encrypted_msg。
     res = fko_encrypt_spa_data(ctx, enc_key, enc_key_len);
 
     /* Now calculate hmac if so configured
@@ -490,6 +502,7 @@ fko_spa_data_final(fko_ctx_t ctx,
         if(hmac_key == NULL)
             return(FKO_ERROR_INVALID_KEY_LEN);
 
+	//计算HMAC摘要，存在ctx->msg_hmac。
         res = fko_set_spa_hmac(ctx, hmac_key, hmac_key_len);
 
         if (res == FKO_SUCCESS)
@@ -498,6 +511,7 @@ fko_spa_data_final(fko_ctx_t ctx,
              * encrypted data (which has already been base64-encoded
              * and the trailing '=' chars stripped off).
             */
+            //将HMAC密文追加到Rijndael密文后面。
             data_with_hmac_len
                 = ctx->encrypted_msg_len+1+ctx->msg_hmac_len+1;
 
@@ -554,11 +568,12 @@ fko_get_spa_data(fko_ctx_t ctx, char **spa_data)
      * in GnuPG mode we eliminate the consistent 'hQ' base64 encoded
      * prefix
     */
+    //忽略了前10字节。
     if(ctx->encryption_type == FKO_ENCRYPTION_RIJNDAEL)
         *spa_data += B64_RIJNDAEL_SALT_STR_LEN;
     else if(ctx->encryption_type == FKO_ENCRYPTION_GPG)
         *spa_data += B64_GPG_PREFIX_STR_LEN;
-
+	printf("encrypted_msg:%s\nspa_data:%s\n\n",ctx->encrypted_msg,*spa_data);
     return(FKO_SUCCESS);
 }
 
@@ -632,3 +647,4 @@ fko_afl_set_spa_data(fko_ctx_t ctx, const char * const enc_msg, const int enc_ms
 #endif
 
 /***EOF***/
+

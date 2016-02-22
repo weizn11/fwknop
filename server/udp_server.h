@@ -1,10 +1,11 @@
-/**
- * \file server/udp_server.h
+/*
+ *****************************************************************************
  *
- * \brief Header file for udp_server.c.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    udp_server.h
+ *
+ * Purpose: Header file for udp_server.c.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

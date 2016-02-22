@@ -1,10 +1,11 @@
-/**
- * \file client/utils.h
+/*
+ *****************************************************************************
  *
- * \brief Header file for utils.c client test program.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    utils.h
+ *
+ * Purpose: Header file for utils.c client test program.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

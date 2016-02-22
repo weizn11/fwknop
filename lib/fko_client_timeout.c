@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_client_timeout.c
+/*
+ *****************************************************************************
  *
- * \brief Set/Get the spa client timeout data
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_spa_client_timeout.c
+ *
+ * Purpose: Set/Get the spa client timeout data
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

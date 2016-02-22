@@ -1,15 +1,14 @@
-/**
- * \file server/process_packet.c
+/*
+ *****************************************************************************
  *
- * \brief Packet parser/decoder for fwknopd server.
+ * File:    process_packet.c
  *
- *          Takes the raw packet
+ * Purpose: Packet parser/decoder for fwknopd server.  Takes the raw packet
  *          data from libpcap and parses/extracts the packet data payload,
  *          then creates an FKO context with that data.  If the context
  *          creation is successful, it is queued for processing.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -33,6 +32,10 @@
  *****************************************************************************
 */
 
+#if USE_LIBPCAP
+  #include <pcap.h>
+#endif
+
 #include "fwknopd_common.h"
 #include "netinet_common.h"
 #include "process_packet.h"
@@ -40,10 +43,11 @@
 #include "utils.h"
 #include "log_msg.h"
 
+#if USE_LIBPCAP
 
 void
-process_packet(PROCESS_PKT_ARGS_TYPE *args, PACKET_HEADER_META,
-               const unsigned char *packet)
+process_packet(unsigned char *args, const struct pcap_pkthdr *packet_header,
+    const unsigned char *packet)
 {
     struct ether_header *eth_p;
     struct iphdr        *iph_p;
@@ -71,24 +75,7 @@ process_packet(PROCESS_PKT_ARGS_TYPE *args, PACKET_HEADER_META,
 
     int                 offset = opts->data_link_offset;
 
-#if USE_LIBPCAP
     unsigned short      pkt_len = packet_header->len;
-
-    /* Gotta have a complete ethernet header.
-    */
-    if (packet_header->caplen < ETHER_HDR_LEN)
-        return;
-
-    /* Determine packet end.
-    */
-    fr_end = (unsigned char *) packet + packet_header->caplen;
-#else
-    /* This is coming from NFQ and we get the packet lentgh as an arg.
-    */
-    if (pkt_len < ETHER_HDR_LEN)
-        return;
-    fr_end = (unsigned char *) packet + pkt_len;
-#endif
 
     /* This is a hack to determine if we are using the linux cooked
      * interface.  We base it on the offset being 16 which is the
@@ -97,9 +84,18 @@ process_packet(PROCESS_PKT_ARGS_TYPE *args, PACKET_HEADER_META,
     */
     unsigned char       assume_cooked = (offset == 16 ? 1 : 0);
 
+    /* Determine packet end.
+    */
+    fr_end = (unsigned char *) packet + packet_header->caplen;
+
     /* The ethernet header.
     */
     eth_p = (struct ether_header*) packet;
+
+    /* Gotta have a complete ethernet header.
+    */
+    if (packet_header->caplen < ETHER_HDR_LEN)
+        return;
 
     eth_type = ntohs(*((unsigned short*)&eth_p->ether_type));
 
@@ -233,5 +229,6 @@ process_packet(PROCESS_PKT_ARGS_TYPE *args, PACKET_HEADER_META,
     return;
 }
 
+#endif /* USE_LIBPCAP */
 
 /***EOF***/

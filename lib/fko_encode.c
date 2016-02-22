@@ -1,12 +1,13 @@
-/**
- * \file lib/fko_encode.c
+/*
+ *****************************************************************************
  *
- * \brief Encodes some pieces of the spa data then puts together all of
+ * File:    fko_encode.c
+ *
+ * Purpose: Encodes some pieces of the spa data then puts together all of
  *          the necessary pieces to gether to create the single encoded
  *          message string.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -59,11 +60,13 @@ append_b64(char* tbuf, char *str)
     if(bs == NULL)
         return(FKO_ERROR_MEMORY_ALLOCATION);
 
+	//base64编码。
     b64_encode((unsigned char*)str, bs, len);
 
     /* --DSS XXX: make sure to check here if later decoding
      *            becomes a problem.
     */
+    //截断等号。
     strip_b64_eq(bs);
 
     strlcat(tbuf, bs, FKO_ENCODE_TMP_BUF_SIZE);
@@ -121,11 +124,13 @@ fko_encode_spa_data(fko_ctx_t ctx)
 
     /* Put it together a piece at a time, starting with the rand val.
     */
+    //追加系统生成的随机值。
     strlcpy(tbuf, ctx->rand_val, FKO_ENCODE_TMP_BUF_SIZE);
 
     /* Add the base64-encoded username.
     */
     strlcat(tbuf, ":", FKO_ENCODE_TMP_BUF_SIZE);
+	//将用户名编码为base64形式后追加到tbuf后面。
     if((res = append_b64(tbuf, ctx->username)) != FKO_SUCCESS)
     {
         free(tbuf);
@@ -134,12 +139,14 @@ fko_encode_spa_data(fko_ctx_t ctx)
 
     /* Add the timestamp.
     */
+    //追加时间戳。
     offset = strlen(tbuf);
     snprintf(((char*)tbuf+offset), FKO_ENCODE_TMP_BUF_SIZE - offset,
             ":%u:", (unsigned int) ctx->timestamp);
 
     /* Add the version string.
     */
+    //追加版本信息。
     strlcat(tbuf, ctx->version, FKO_ENCODE_TMP_BUF_SIZE);
 
     /* Before we add the message type value, we will once again
@@ -155,12 +162,14 @@ fko_encode_spa_data(fko_ctx_t ctx)
 
     /* Add the message type value.
     */
+    //追加消息类型值。
     offset = strlen(tbuf);
     snprintf(((char*)tbuf+offset), FKO_ENCODE_TMP_BUF_SIZE - offset,
             ":%i:", ctx->message_type);
 
     /* Add the base64-encoded SPA message.
     */
+    //追加base64编码过的access_buf
     if((res = append_b64(tbuf, ctx->message)) != FKO_SUCCESS)
     {
         free(tbuf);
@@ -170,6 +179,7 @@ fko_encode_spa_data(fko_ctx_t ctx)
     /* If a nat_access message was given, add it to the SPA
      * message.
     */
+    //如果设置了NAT方式认证，则将base64编码的NAT信息添加到SPA消息中。
     if(ctx->nat_access != NULL)
     {
         strlcat(tbuf, ":", FKO_ENCODE_TMP_BUF_SIZE);
@@ -183,6 +193,7 @@ fko_encode_spa_data(fko_ctx_t ctx)
     /* If we have a server_auth field set.  Add it here.
      *
     */
+    //若有server_auth字段，则追加。
     if(ctx->server_auth != NULL)
     {
         strlcat(tbuf, ":", FKO_ENCODE_TMP_BUF_SIZE);
@@ -196,6 +207,7 @@ fko_encode_spa_data(fko_ctx_t ctx)
     /* If a client timeout is specified and we are not dealing with a
      * SPA command message, add the timeout here.
     */
+    //如果客户端认证超时时间被设置并且这不是一个执行命令类型的SPA消息，则将超时时间追加到这。
     if(ctx->client_timeout > 0 && ctx->message_type != FKO_COMMAND_MSG)
     {
         offset = strlen(tbuf);
@@ -206,6 +218,7 @@ fko_encode_spa_data(fko_ctx_t ctx)
     /* If encoded_msg is not null, then we assume it needs to
      * be freed before re-assignment.
     */
+    //
     if(ctx->encoded_msg != NULL)
         free(ctx->encoded_msg);
 
@@ -219,14 +232,16 @@ fko_encode_spa_data(fko_ctx_t ctx)
 
     ctx->encoded_msg_len = strnlen(ctx->encoded_msg, MAX_SPA_ENCODED_MSG_SIZE);
 
+	//判断消息格式是否有效。
     if(! is_valid_encoded_msg_len(ctx->encoded_msg_len))
         return(FKO_ERROR_INVALID_DATA_ENCODE_MSGLEN_VALIDFAIL);
 
     /* At this point we can compute the digest for this SPA data.
     */
+    //通过ctx->digest_type对ctx->encoded_msg计算摘要数据。
     if((res = fko_set_spa_digest(ctx)) != FKO_SUCCESS)
         return(res);
-
+	printf("encoded_msg:%s\ndigest:%s\n\n",ctx->encoded_msg,ctx->digest);
     /* Here we can clear the modified flags on the SPA data fields.
     */
     FKO_CLEAR_SPA_DATA_MODIFIED(ctx);

@@ -1,10 +1,11 @@
-/**
- * \file server/process_packet.h
+/*
+ *****************************************************************************
  *
- * \brief Header file for process_packet and other fwknopd code.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    process_packet.h
+ *
+ * Purpose: Header file for process_packet and other fwknopd code.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -30,15 +31,6 @@
 #ifndef PROCESS_PACKET_H
 #define PROCESS_PACKET_H
 
-#if USE_LIBPCAP
-  #include <pcap.h>
-  #define PACKET_HEADER_META const struct pcap_pkthdr *packet_header
-  #define PROCESS_PKT_ARGS_TYPE unsigned char
-#else
-  #define PACKET_HEADER_META unsigned short pkt_len
-  #define PROCESS_PKT_ARGS_TYPE fko_srv_options_t
-#endif
-
 #define IPV4_VER_MASK   0x15
 #define MIN_IPV4_WORDS  0x05
 
@@ -53,7 +45,9 @@
 
 /* Prototypes
 */
-void process_packet(PROCESS_PKT_ARGS_TYPE *opts, PACKET_HEADER_META,
-					const unsigned char *packet);
+#if USE_LIBPCAP
+void process_packet(unsigned char *args,
+        const struct pcap_pkthdr *packet_header, const unsigned char *packet);
+#endif
 
 #endif  /* PROCESS_PACKET_H */

@@ -1,10 +1,10 @@
-/**
- * \file lib/fko_context.h
- *
- * \brief fko context definiton.
- */
-
 /*
+ *****************************************************************************
+ *
+ * File:    fko_context.h
+ *
+ * Purpose: fko context definition.
+ *
  *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
@@ -37,16 +37,12 @@
   #include <gpgme.h>
 #endif
 
-#if HAVE_LIBGPGME || DOXYGEN
-
-/**
- *
- * \struct fko_gpg_sig
- *
- * \brief Stucture to hold a list of the gpg signature information we are interested in.
- */
+#if HAVE_LIBGPGME
+/* Stucture to hold a list of the gpg signature information
+ * we are interested in.
+*/
 struct fko_gpg_sig {
-    struct fko_gpg_sig *next; /**< link to next member */
+    struct fko_gpg_sig *next;
     gpgme_sigsum_t      summary;
     gpgme_error_t       status;
     gpgme_validity_t    validity;
@@ -56,65 +52,54 @@ struct fko_gpg_sig {
 typedef struct fko_gpg_sig *fko_gpg_sig_t;
 #endif /* HAVE_LIBGPGME */
 
-/**
- *
- * \struct fko_context
- *
- * \brief The pieces we need to make an FKO SPA data packet.
- */
+/* The pieces we need to make an FKO  SPA data packet.
+*/
 struct fko_context {
-    /** \name FKO SPA user-definable message data */
 
-    /*@{*/
+    /* FKO SPA user-definable message data */
     char           *rand_val;
     char           *username;
     time_t          timestamp;
     short           message_type;
-    char           *message;
+    char           *message;		//access_buf
     char           *nat_access;
     char           *server_auth;
     unsigned int    client_timeout;
-    /*@}*/
-    /** \name FKO SPA user-settable message encoding types */
-    /*@{*/
+
+    /* FKO SPA user-settable message encoding types */
     short  digest_type;
     short  encryption_type;
     int    encryption_mode;
     short  hmac_type;
-    /*@}*/
-    /** \name Computed or predefined data */
-    /*@{*/
+
+    /* Computed or predefined data */
     char           *version;
-    char           *digest;
+    char           *digest;	//对encoded_msg的摘要。
     int             digest_len;
-    /*@}*/
-    /** \name Digest of raw encrypted/base64 data
-     * This is used for replay attack detection
+
+    /* Digest of raw encrypted/base64 data - this is used
+     * for replay attack detection
     */
-    /*@{*/
-    char           *raw_digest;
+    char           *raw_digest;	//Server计算出接收到密文的摘要。
     short           raw_digest_type;
     int             raw_digest_len;
-    /*@}*/
-    /** \name Computed processed data (encodings, etc.) */
-    /*@{*/
+
+    /* Computed processed data (encodings, etc.) */
     char           *encoded_msg;
     int             encoded_msg_len;
-    char           *encrypted_msg;
+    char           *encrypted_msg;	//base64编码格式的Rijndael密文。
     int             encrypted_msg_len;
-    char           *msg_hmac;
+    char           *msg_hmac;		//base64编码格式的HMAC密文。
     int             msg_hmac_len;
     int             added_salted_str;
     int             added_gpg_prefix;
-    /*@}*/
-    /** \name State info */
-    /*@{*/
+
+    /* State info */
     unsigned int    state;
     unsigned char   initval;
-    /*@}*/
+
 #if HAVE_LIBGPGME
-    /** \name For gpgme support */
-    /*@{*/
+    /* For gpgme support */
     char           *gpg_exe;
     char           *gpg_recipient;
     char           *gpg_signer;
@@ -132,7 +117,6 @@ struct fko_context {
     fko_gpg_sig_t   gpg_sigs;
 
     gpgme_error_t   gpg_err;
-    /*@}*/
 #endif /* HAVE_LIBGPGME */
 };
 

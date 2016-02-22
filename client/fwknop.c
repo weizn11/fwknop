@@ -1,10 +1,9 @@
 /**
- * \file    client/fwknop.c
+ * @file    fwknop.c
  *
- * \brief   The fwknop client.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * @brief   The fwknop client.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -39,38 +38,38 @@
 /* prototypes
 */
 static int get_keys(fko_ctx_t ctx, fko_cli_options_t *options,
-    char *key, int *key_len, char *hmac_key, int *hmac_key_len);
+                    char *key, int *key_len, char *hmac_key, int *hmac_key_len);
 static void errmsg(const char *msg, const int err);
 static int prev_exec(fko_cli_options_t *options, int argc, char **argv);
 static int get_save_file(char *args_save_file);
 static int show_last_command(const char * const args_save_file);
 static int save_args(int argc, char **argv, const char * const args_save_file);
 static int run_last_args(fko_cli_options_t *options,
-        const char * const args_save_file);
+                         const char * const args_save_file);
 static int set_message_type(fko_ctx_t ctx, fko_cli_options_t *options);
 static int set_nat_access(fko_ctx_t ctx, fko_cli_options_t *options,
-        const char * const access_buf);
+                          const char * const access_buf);
 static int set_access_buf(fko_ctx_t ctx, fko_cli_options_t *options,
-        char *access_buf);
+                          char *access_buf);
 static int get_rand_port(fko_ctx_t ctx);
 int resolve_ip_https(fko_cli_options_t *options);
 int resolve_ip_http(fko_cli_options_t *options);
 static void clean_exit(fko_ctx_t ctx, fko_cli_options_t *opts,
-    char *key, int *key_len, char *hmac_key, int *hmac_key_len,
-    unsigned int exit_status);
+                       char *key, int *key_len, char *hmac_key, int *hmac_key_len,
+                       unsigned int exit_status);
 static void zero_buf_wrapper(char *buf, int len);
 static int is_hostname_str_with_port(const char *str,
-        char *hostname, size_t hostname_bufsize, int *port);
+                                     char *hostname, size_t hostname_bufsize, int *port);
 #if HAVE_LIBFIU
 static int enable_fault_injections(fko_cli_options_t * const opts);
 #endif
 
 #if AFL_FUZZING
-  /* These are used in AFL fuzzing mode so the fuzzing cycle is not
-   * interrupted by trying to read from stdin
-  */
-  #define AFL_ENC_KEY               "aflenckey"
-  #define AFL_HMAC_KEY              "aflhmackey"
+/* These are used in AFL fuzzing mode so the fuzzing cycle is not
+ * interrupted by trying to read from stdin
+*/
+#define AFL_ENC_KEY               "aflenckey"
+#define AFL_HMAC_KEY              "aflhmackey"
 #endif
 
 #define NAT_ACCESS_STR_TEMPLATE     "%s,%d"             /*!< Template for a nat access string ip,port with sscanf*/
@@ -135,8 +134,8 @@ is_hostname_str_with_port(const char *str, char *hostname, size_t hostname_bufsi
         /* If the string does not match an ipv4 or ipv6 address we assume this
          * is an hostname. We make sure the port is in the good range too */
         if (   (is_valid_ipv4_addr(buf) == 0)
-            && (is_ipv6_str(buf) == 0)
-            && ((*port > 0) && (*port < 65536)) )
+                && (is_ipv6_str(buf) == 0)
+                && ((*port > 0) && (*port < 65536)) )
         {
             strlcpy(hostname, h, hostname_bufsize);
             valid = 1;
@@ -171,55 +170,61 @@ main(int argc, char **argv)
     memset(&options, 0x0, sizeof(fko_cli_options_t));
 
     /* Initialize the log module */
-    log_new();
+    log_new();  //创建日志详细等级
 
     /* Handle command line
     */
+    //处理命令行参数，生成密钥。
     config_init(&options, argc, argv);
 
 #if HAVE_LIBFIU
-        /* Set any fault injection points early
-        */
-        if(! enable_fault_injections(&options))
-            clean_exit(ctx, &options, key, &key_len, hmac_key,
-                    &hmac_key_len, EXIT_FAILURE);
+    /* Set any fault injection points early
+    */
+    if(! enable_fault_injections(&options))
+        clean_exit(ctx, &options, key, &key_len, hmac_key,
+                   &hmac_key_len, EXIT_FAILURE);
 #endif
 
     /* Handle previous execution arguments if required
     */
+    //保存命令行参数至文件。
     if(prev_exec(&options, argc, argv) != 1)
         clean_exit(ctx, &options, key, &key_len, hmac_key,
-                &hmac_key_len, EXIT_FAILURE);
+                   &hmac_key_len, EXIT_FAILURE);
 
+	//从文件中读取最后一次执行的命令。
     if(options.show_last_command)
         clean_exit(ctx, &options, key, &key_len, hmac_key,
-                &hmac_key_len, EXIT_SUCCESS);
+                   &hmac_key_len, EXIT_SUCCESS);
 
     /* Intialize the context
     */
+    //初始化fko环境。
     res = fko_new(&ctx);
     if(res != FKO_SUCCESS)
     {
         errmsg("fko_new", res);
         clean_exit(ctx, &options, key, &key_len, hmac_key,
-                &hmac_key_len, EXIT_FAILURE);
+                   &hmac_key_len, EXIT_FAILURE);
     }
 
     /* Display version info and exit.
     */
+    //显示版本信息。
     if(options.version)
     {
         fko_get_version(ctx, &version);
 
         fprintf(stdout, "fwknop client %s, FKO protocol version %s\n",
-            MY_VERSION, version);
+                MY_VERSION, version);
 
         clean_exit(ctx, &options, key, &key_len,
-            hmac_key, &hmac_key_len, EXIT_SUCCESS);
+                   hmac_key, &hmac_key_len, EXIT_SUCCESS);
     }
 
     /* Set client timeout
     */
+    //设置防火墙规则等待超时时间。
     if(options.fw_timeout >= 0)
     {
         res = fko_set_spa_client_timeout(ctx, options.fw_timeout);
@@ -227,22 +232,24 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_spa_client_timeout", res);
             clean_exit(ctx, &options, key, &key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
 
     /* Set the SPA packet message type based on command line options
     */
+    //通过命令行设置SPA数据包消息类型。
     res = set_message_type(ctx, &options);
     if(res != FKO_SUCCESS)
     {
         errmsg("fko_set_spa_message_type", res);
         clean_exit(ctx, &options, key, &key_len,
-            hmac_key, &hmac_key_len, EXIT_FAILURE);
+                   hmac_key, &hmac_key_len, EXIT_FAILURE);
     }
 
     /* Adjust the SPA timestamp if necessary
     */
+    //设置数据包的时间戳。
     if(options.time_offset_plus > 0)
     {
         res = fko_set_timestamp(ctx, options.time_offset_plus);
@@ -250,7 +257,7 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_timestamp", res);
             clean_exit(ctx, &options, key, &key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
     if(options.time_offset_minus > 0)
@@ -260,17 +267,18 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_timestamp", res);
             clean_exit(ctx, &options, key, &key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
 
+	//设置发送给服务器执行的命令。
     if(options.server_command[0] != 0x0)
     {
         /* Set the access message to a command that the server will
          * execute
         */
         snprintf(access_buf, MAX_LINE_LEN, "%s%s%s",
-                options.allow_ip_str, ",", options.server_command);
+                 options.allow_ip_str, ",", options.server_command);
     }
     else
     {
@@ -284,7 +292,7 @@ main(int argc, char **argv)
                 if(resolve_ip_http(&options) < 0)
                 {
                     clean_exit(ctx, &options, key, &key_len,
-                        hmac_key, &hmac_key_len, EXIT_FAILURE);
+                               hmac_key, &hmac_key_len, EXIT_FAILURE);
                 }
             }
             else
@@ -293,7 +301,7 @@ main(int argc, char **argv)
                 if(resolve_ip_https(&options) < 0)
                 {
                     clean_exit(ctx, &options, key, &key_len,
-                        hmac_key, &hmac_key_len, EXIT_FAILURE);
+                               hmac_key, &hmac_key_len, EXIT_FAILURE);
                 }
             }
         }
@@ -303,16 +311,21 @@ main(int argc, char **argv)
          * to be specified as well, so in this case append the string
          * "none/0" to the allow IP.
         */
-        if(set_access_buf(ctx, &options, access_buf) != 1)
+        //生成access_buf.
+        //if(options->access_str[0] == 0x0)   snprintf(access_buf, MAX_LINE_LEN, "%s%s%s",options->allow_ip_str, ",", "none/0");
+    if(set_access_buf(ctx, &options, access_buf) != 1)
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
     }
+
+	printf("access_buf:%s\n\n",access_buf);
+	//设置ctx->message为access_buf
     res = fko_set_spa_message(ctx, access_buf);
     if(res != FKO_SUCCESS)
     {
         errmsg("fko_set_spa_message", res);
         clean_exit(ctx, &options, key, &key_len,
-            hmac_key, &hmac_key_len, EXIT_FAILURE);
+                   hmac_key, &hmac_key_len, EXIT_FAILURE);
     }
 
     /* Set NAT access string
@@ -324,7 +337,7 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_nat_access_str", res);
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
 
@@ -337,7 +350,7 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_username", res);
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
 
@@ -358,7 +371,7 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_spa_encryption_type", res);
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
 
         /* Set gpg path if necessary
@@ -370,7 +383,7 @@ main(int argc, char **argv)
             {
                 errmsg("fko_set_gpg_exe", res);
                 clean_exit(ctx, &options, key, &key_len,
-                        hmac_key, &hmac_key_len, EXIT_FAILURE);
+                           hmac_key, &hmac_key_len, EXIT_FAILURE);
             }
         }
 
@@ -385,7 +398,7 @@ main(int argc, char **argv)
             {
                 errmsg("fko_set_gpg_home_dir", res);
                 clean_exit(ctx, &options, key, &key_len,
-                        hmac_key, &hmac_key_len, EXIT_FAILURE);
+                           hmac_key, &hmac_key_len, EXIT_FAILURE);
             }
         }
 
@@ -397,7 +410,7 @@ main(int argc, char **argv)
             if(IS_GPG_ERROR(res))
                 log_msg(LOG_VERBOSITY_ERROR, "GPG ERR: %s", fko_gpg_errstr(ctx));
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
 
         if(strlen(options.gpg_signer_key) > 0)
@@ -410,7 +423,7 @@ main(int argc, char **argv)
                 if(IS_GPG_ERROR(res))
                     log_msg(LOG_VERBOSITY_ERROR, "GPG ERR: %s", fko_gpg_errstr(ctx));
                 clean_exit(ctx, &options, key, &key_len,
-                        hmac_key, &hmac_key_len, EXIT_FAILURE);
+                           hmac_key, &hmac_key_len, EXIT_FAILURE);
             }
         }
 
@@ -419,7 +432,7 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_spa_encryption_mode", res);
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
 
@@ -430,7 +443,7 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_spa_encryption_mode", res);
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
 
@@ -443,15 +456,16 @@ main(int argc, char **argv)
         {
             errmsg("fko_set_spa_digest_type", res);
             clean_exit(ctx, &options, key, &key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
     }
 
     /* Acquire the necessary encryption/hmac keys
     */
+    //获取之前生成的密钥。
     if(get_keys(ctx, &options, key, &key_len, hmac_key, &hmac_key_len) != 1)
         clean_exit(ctx, &options, key, &key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                   hmac_key, &hmac_key_len, EXIT_FAILURE);
 
     orig_key_len = key_len;
 
@@ -467,8 +481,11 @@ main(int argc, char **argv)
         key_len = 16;
     }
 
+	printf("Rijndael Key:%s\nHMAC Key:%s\n\n",key,hmac_key);
+
     /* Finalize the context data (encrypt and encode the SPA data)
     */
+    //计算SPA认证密文。
     res = fko_spa_data_final(ctx, key, key_len, hmac_key, hmac_key_len);
     if(res != FKO_SUCCESS)
     {
@@ -477,13 +494,15 @@ main(int argc, char **argv)
         if(IS_GPG_ERROR(res))
             log_msg(LOG_VERBOSITY_ERROR, "GPG ERR: %s", fko_gpg_errstr(ctx));
         clean_exit(ctx, &options, key, &orig_key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                   hmac_key, &hmac_key_len, EXIT_FAILURE);
     }
 
     /* Display the context data.
     */
+    //在屏幕上输出SPA信息。
     if (options.verbose || options.test)
     {
+    	//将ctx格式化到dump_buf中。
         res = dump_ctx_to_buffer(ctx, dump_buf, sizeof(dump_buf));
         if (res == FKO_SUCCESS)
             log_msg(LOG_VERBOSITY_NORMAL, "%s", dump_buf);
@@ -501,11 +520,12 @@ main(int argc, char **argv)
     */
     if (options.rand_port)
     {
+    	//获取随机端口。
         tmp_port = get_rand_port(ctx);
         if(tmp_port < 0)
             clean_exit(ctx, &options, key, &orig_key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
-        options.spa_dst_port = tmp_port;
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
+        options.spa_dst_port = tmp_port;	//设置目的端口。
     }
 
     /* If we are using one the "raw" modes (normally because
@@ -517,19 +537,21 @@ main(int argc, char **argv)
             || options.spa_proto == FKO_PROTO_ICMP)
             && !options.spa_src_port)
     {
+    	//如果用户选择发送原始数据包...
         tmp_port = get_rand_port(ctx);
         if(tmp_port < 0)
             clean_exit(ctx, &options, key, &orig_key_len,
-                    hmac_key, &hmac_key_len, EXIT_FAILURE);
-        options.spa_src_port = tmp_port;
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
+        options.spa_src_port = tmp_port;	//设置源端口。
     }
 
+	//构造并发送SPA认证包。
     res = send_spa_packet(ctx, &options);
     if(res < 0)
     {
         log_msg(LOG_VERBOSITY_ERROR, "send_spa_packet: packet not sent.");
         clean_exit(ctx, &options, key, &orig_key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                   hmac_key, &hmac_key_len, EXIT_FAILURE);
     }
     else
     {
@@ -550,7 +572,7 @@ main(int argc, char **argv)
         {
             errmsg("fko_get_spa_data", res);
             clean_exit(ctx, &options, key, &orig_key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
 
         /* Pull the encryption mode.
@@ -564,7 +586,7 @@ main(int argc, char **argv)
                         "[*] Could not zero out sensitive data buffer.");
             ctx = NULL;
             clean_exit(ctx, &options, key, &orig_key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
 
         /* If gpg-home-dir is specified, we have to defer decrypting if we
@@ -579,7 +601,7 @@ main(int argc, char **argv)
          * problems.
         */
         res = fko_new_with_data(&ctx2, spa_data, NULL,
-            0, enc_mode, hmac_key, hmac_key_len, options.hmac_type);
+                                0, enc_mode, hmac_key, hmac_key_len, options.hmac_type);
         if(res != FKO_SUCCESS)
         {
             errmsg("fko_new_with_data", res);
@@ -588,7 +610,7 @@ main(int argc, char **argv)
                         "[*] Could not zero out sensitive data buffer.");
             ctx2 = NULL;
             clean_exit(ctx, &options, key, &orig_key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
 
         res = fko_set_spa_encryption_mode(ctx2, enc_mode);
@@ -600,7 +622,7 @@ main(int argc, char **argv)
                         "[*] Could not zero out sensitive data buffer.");
             ctx2 = NULL;
             clean_exit(ctx, &options, key, &orig_key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
 
         /* See if we are using gpg and if we need to set the GPG home dir.
@@ -618,7 +640,7 @@ main(int argc, char **argv)
                                 "[*] Could not zero out sensitive data buffer.");
                     ctx2 = NULL;
                     clean_exit(ctx, &options, key, &orig_key_len,
-                        hmac_key, &hmac_key_len, EXIT_FAILURE);
+                               hmac_key, &hmac_key_len, EXIT_FAILURE);
                 }
             }
         }
@@ -631,7 +653,8 @@ main(int argc, char **argv)
         {
             errmsg("fko_decrypt_spa_data", res);
 
-            if(IS_GPG_ERROR(res)) {
+            if(IS_GPG_ERROR(res))
+            {
                 /* we most likely could not decrypt the gpg-encrypted data
                  * because we don't have access to the private key associated
                  * with the public key we used for encryption.  Since this is
@@ -643,14 +666,14 @@ main(int argc, char **argv)
                  * authentication, so decryption become possible for these
                  * tests. */
                 log_msg(LOG_VERBOSITY_ERROR, "GPG ERR: %s\n%s", fko_gpg_errstr(ctx2),
-                    "No access to recipient private key?");
+                        "No access to recipient private key?");
             }
             if(fko_destroy(ctx2) == FKO_ERROR_ZERO_OUT_DATA)
                 log_msg(LOG_VERBOSITY_ERROR,
                         "[*] Could not zero out sensitive data buffer.");
             ctx2 = NULL;
             clean_exit(ctx, &options, key, &orig_key_len,
-                hmac_key, &hmac_key_len, EXIT_FAILURE);
+                       hmac_key, &hmac_key_len, EXIT_FAILURE);
         }
 
         res = dump_ctx_to_buffer(ctx2, dump_buf, sizeof(dump_buf));
@@ -666,7 +689,7 @@ main(int argc, char **argv)
     }
 
     clean_exit(ctx, &options, key, &orig_key_len,
-            hmac_key, &hmac_key_len, EXIT_SUCCESS);
+               hmac_key, &hmac_key_len, EXIT_SUCCESS);
 
     return EXIT_SUCCESS;  /* quiet down a gcc warning */
 }
@@ -710,8 +733,8 @@ get_rand_port(fko_ctx_t ctx)
     if(is_err != FKO_SUCCESS)
     {
         log_msg(LOG_VERBOSITY_ERROR,
-            "[*] get_rand_port(), could not convert rand_val str '%s', to integer",
-            rand_val);
+                "[*] get_rand_port(), could not convert rand_val str '%s', to integer",
+                rand_val);
         return -1;
     }
 
@@ -749,11 +772,11 @@ ipv4_str_has_port(char *str)
     /* Check format and values.
     */
     if((sscanf(str, "%u.%u.%u.%u,%u", &o1, &o2, &o3, &o4, &p)) == 5
-        && o1 >= 0 && o1 <= 255
-        && o2 >= 0 && o2 <= 255
-        && o3 >= 0 && o3 <= 255
-        && o4 >= 0 && o4 <= 255
-        && p  >  0 && p  <  65536)
+            && o1 >= 0 && o1 <= 255
+            && o2 >= 0 && o2 <= 255
+            && o3 >= 0 && o3 <= 255
+            && o4 >= 0 && o4 <= 255
+            && p  >  0 && p  <  65536)
     {
         return 1;
     }
@@ -797,7 +820,7 @@ set_access_buf(fko_ctx_t ctx, fko_cli_options_t *options, char *access_buf)
                 return 0;
             }
             snprintf(access_buf, MAX_LINE_LEN, "%s%s",
-                    options->allow_ip_str, ",");
+                     options->allow_ip_str, ",");
 
             /* This adds in the protocol + '/' char
             */
@@ -820,13 +843,13 @@ set_access_buf(fko_ctx_t ctx, fko_cli_options_t *options, char *access_buf)
         else
         {
             snprintf(access_buf, MAX_LINE_LEN, "%s%s%s",
-                    options->allow_ip_str, ",", options->access_str);
+                     options->allow_ip_str, ",", options->access_str);
         }
     }
     else
     {
         snprintf(access_buf, MAX_LINE_LEN, "%s%s%s",
-                options->allow_ip_str, ",", "none/0");
+                 options->allow_ip_str, ",", "none/0");
     }
     return 1;
 }
@@ -839,6 +862,7 @@ set_nat_access(fko_ctx_t ctx, fko_cli_options_t *options, const char * const acc
     char                nat_access_buf[MAX_LINE_LEN] = {0};
     char                tmp_access_port[MAX_PORT_STR_LEN+1] = {0}, *ndx = NULL;
     int                 access_port = 0, i = 0, is_err = 0;
+    char                dst_ip_str[INET_ADDRSTRLEN] = {0};
     char                hostname[HOSTNAME_BUFSIZE] = {0};
     int                 port = 0;
     struct addrinfo     hints;
@@ -862,7 +886,7 @@ set_nat_access(fko_ctx_t ctx, fko_cli_options_t *options, const char * const acc
     tmp_access_port[i] = '\0';
 
     access_port = strtol_wrapper(tmp_access_port, 1,
-            MAX_PORT, NO_EXIT_UPON_ERR, &is_err);
+                                 MAX_PORT, NO_EXIT_UPON_ERR, &is_err);
     if(is_err != FKO_SUCCESS)
     {
         log_msg(LOG_VERBOSITY_ERROR, "[*] Invalid port value '%d' for -A arg.",
@@ -873,7 +897,7 @@ set_nat_access(fko_ctx_t ctx, fko_cli_options_t *options, const char * const acc
     if (options->nat_local && options->nat_access_str[0] == 0x0)
     {
         snprintf(nat_access_buf, MAX_LINE_LEN, NAT_ACCESS_STR_TEMPLATE,
-            options->spa_server_str, access_port);
+                 options->spa_server_str, access_port);
     }
 
     if (nat_access_buf[0] == 0x0 && options->nat_access_str[0] != 0x0)
@@ -881,31 +905,38 @@ set_nat_access(fko_ctx_t ctx, fko_cli_options_t *options, const char * const acc
         if (ipv4_str_has_port(options->nat_access_str))
         {
             snprintf(nat_access_buf, MAX_LINE_LEN, "%s",
-                options->nat_access_str);
+                     options->nat_access_str);
         }
         else
         {
             snprintf(nat_access_buf, MAX_LINE_LEN, NAT_ACCESS_STR_TEMPLATE,
-                options->nat_access_str, access_port);
+                     options->nat_access_str, access_port);
         }
     }
 
     /* Check if there is a hostname to resolve as an ip address in the NAT access buffer */
     if (is_hostname_str_with_port(nat_access_buf, hostname, sizeof(hostname), &port))
     {
+        /* Speed up the name resolution by forcing ipv4 (AF_INET).
+         * A NULL pointer could be used instead if there is no constraint.
+         * Maybe when ipv6 support will be enable the structure could initialize the
+         * family to either AF_INET or AF_INET6 */
+        hints.ai_family = AF_INET;
 
-        /* We now send the hostname, and resolve it server side */
-        snprintf(nat_access_buf, MAX_LINE_LEN, "%s",
-                options->nat_access_str);
-    }
+        if (resolve_dst_addr(hostname, &hints,
+                             dst_ip_str, sizeof(dst_ip_str), options) != 0)
+        {
+            log_msg(LOG_VERBOSITY_ERROR, "[*] Unable to resolve %s as an ip address",
+                    hostname);
+            return FKO_ERROR_INVALID_DATA;
+        }
 
-        /* assume just hostname */
-    else
-    {
         snprintf(nat_access_buf, MAX_LINE_LEN, NAT_ACCESS_STR_TEMPLATE,
-            options->nat_access_str, access_port);
-
+                 dst_ip_str, port);
     }
+
+    /* Nothing to resolve */
+    else;
 
     if(options->nat_rand_port)
     {
@@ -961,16 +992,20 @@ show_last_command(const char * const args_save_file)
     if(verify_file_perms_ownership(args_save_file) != 1)
         return 0;
 
-    if ((args_file_ptr = fopen(args_save_file, "r")) == NULL) {
+    if ((args_file_ptr = fopen(args_save_file, "r")) == NULL)
+    {
         log_msg(LOG_VERBOSITY_ERROR, "Could not open args file: %s",
-            args_save_file);
+                args_save_file);
         return 0;
     }
 
-    if ((fgets(args_str, MAX_LINE_LEN, args_file_ptr)) != NULL) {
+    if ((fgets(args_str, MAX_LINE_LEN, args_file_ptr)) != NULL)
+    {
         log_msg(LOG_VERBOSITY_NORMAL,
                 "Last fwknop client command line: %s", args_str);
-    } else {
+    }
+    else
+    {
         log_msg(LOG_VERBOSITY_NORMAL,
                 "Could not read line from file: %s", args_save_file);
         fclose(args_file_ptr);
@@ -1041,9 +1076,10 @@ get_save_file(char *args_save_file)
 #else
     homedir = getenv("HOME");
 #endif
-    if (homedir != NULL) {
+    if (homedir != NULL)
+    {
         snprintf(args_save_file, MAX_PATH_LEN, "%s%c%s",
-            homedir, PATH_SEP, ".fwknop.run");
+                 homedir, PATH_SEP, ".fwknop.run");
         rv = 1;
     }
 
@@ -1059,15 +1095,19 @@ save_args(int argc, char **argv, const char * const args_save_file)
     int i = 0, args_str_len = 0, args_file_fd = -1;
 
     args_file_fd = open(args_save_file, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
-    if (args_file_fd == -1) {
+    if (args_file_fd == -1)
+    {
         log_msg(LOG_VERBOSITY_ERROR, "Could not open args file: %s",
-            args_save_file);
+                args_save_file);
         return 0;
     }
-    else {
-        for (i=0; i < argc; i++) {
+    else
+    {
+        for (i=0; i < argc; i++)
+        {
             args_str_len += strlen(argv[i]);
-            if (args_str_len >= MAX_PATH_LEN) {
+            if (args_str_len >= MAX_PATH_LEN)
+            {
                 log_msg(LOG_VERBOSITY_ERROR, "argument string too long, exiting.");
                 close(args_file_fd);
                 return 0;
@@ -1077,9 +1117,10 @@ save_args(int argc, char **argv, const char * const args_save_file)
         }
         strlcat(args_str, "\n", sizeof(args_str));
         if(write(args_file_fd, args_str, strlen(args_str))
-                != strlen(args_str)) {
+                != strlen(args_str))
+        {
             log_msg(LOG_VERBOSITY_WARNING,
-                "warning, did not write expected number of bytes to args save file");
+                    "warning, did not write expected number of bytes to args save file");
         }
         close(args_file_fd);
     }
@@ -1121,7 +1162,6 @@ set_message_type(fko_ctx_t ctx, fko_cli_options_t *options)
 
     return fko_set_spa_message_type(ctx, message_type);
 }
-
 /* Prompt for and receive a user password.
 */
 static int
@@ -1344,8 +1384,8 @@ enable_fault_injections(fko_cli_options_t * const opts)
 */
 static void
 clean_exit(fko_ctx_t ctx, fko_cli_options_t *opts,
-        char *key, int *key_len, char *hmac_key, int *hmac_key_len,
-        unsigned int exit_status)
+           char *key, int *key_len, char *hmac_key, int *hmac_key_len,
+           unsigned int exit_status)
 {
 #if HAVE_LIBFIU
     if(opts->fault_injection_tag[0] != 0x0)

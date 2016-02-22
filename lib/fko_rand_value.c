@@ -1,10 +1,11 @@
-/**
- * \file lib/fko_rand_value.c
+/*
+ *****************************************************************************
  *
- * \ Generate a 16-byte random numeric value.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_rand_value.c
+ *
+ * Purpose: Generate a 16-byte random numeric value.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -158,6 +159,7 @@ fko_set_rand_value(fko_ctx_t ctx, const char * const new_val)
 
     return(FKO_SUCCESS);
 }
+
 
 /* Return the current rand value.
 */

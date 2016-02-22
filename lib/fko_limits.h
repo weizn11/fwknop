@@ -1,10 +1,9 @@
-/**
- * \file lib/fko_limits.h
+/*
+ *****************************************************************************
  *
- * \brief #defines for libfko limits
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fko_limits.h
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *

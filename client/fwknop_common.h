@@ -1,10 +1,11 @@
-/**
- * \file client/fwknop_common.h
+/*
+ ******************************************************************************
  *
- * \brief Header file for fwknop config_init.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fwknop_common.h
+ *
+ * Purpose: Header file for fwknop config_init.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -65,6 +66,7 @@
 #define HTTP_MAX_REQUEST_LEN        2000
 #define HTTP_MAX_RESPONSE_LEN       2000
 #define HTTP_MAX_USER_AGENT_LEN     100
+#define MAX_HOSTNAME_LEN            70
 #define MAX_URL_HOST_LEN            256
 #define MAX_URL_PATH_LEN            1024
 
@@ -102,10 +104,10 @@ typedef struct fko_cli_options
     /* Encryption keys read from a .fwknoprc stanza
     */
     char key[MAX_KEY_LEN+1];
-    char key_base64[MAX_B64_KEY_LEN+1];
+    char key_base64[MAX_B64_KEY_LEN+1];	//Rijndael√‹‘øµƒbase64±‡¬Î°£
     int  key_len;
     char hmac_key[MAX_KEY_LEN+1];
-    char hmac_key_base64[MAX_B64_KEY_LEN+1];
+    char hmac_key_base64[MAX_B64_KEY_LEN+1];	//hmac√‹‘øµƒbase64±‡¬Î°£
     int  hmac_key_len;
     int  have_key;
     int  have_base64_key;
@@ -157,7 +159,7 @@ typedef struct fko_cli_options
     int             time_offset_minus;
     int             fw_timeout;
 
-    char            use_rc_stanza[MAX_LINE_LEN];
+    char            use_rc_stanza[MAX_LINE_LEN];    //‘¥IP
     unsigned char   got_named_stanza;
     unsigned char   save_rc_stanza;
     unsigned char   force_save_rc_stanza;

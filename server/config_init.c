@@ -1,10 +1,11 @@
-/**
- * \file server/config_init.c
+/*
+ ******************************************************************************
  *
- * \brief Command-line and config file processing for fwknop server.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    config_init.c
+ *
+ * Purpose: Command-line and config file processing for fwknop server.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -879,10 +880,6 @@ validate_options(fko_srv_options_t *opts)
 
 #endif /* FIREWALL type */
 
-    /* NAT DNS enabled*/
-    if(opts->config[CONF_ENABLE_NAT_DNS] == NULL)
-        set_config_entry(opts, CONF_ENABLE_NAT_DNS, DEF_ENABLE_NAT_DNS);
-
     /* GPG Home dir.
     */
     if(opts->config[CONF_GPG_HOME_DIR] == NULL)
@@ -913,50 +910,6 @@ validate_options(fko_srv_options_t *opts)
     */
     if(opts->config[CONF_TCPSERV_PORT] == NULL)
         set_config_entry(opts, CONF_TCPSERV_PORT, DEF_TCPSERV_PORT);
-
-#if USE_LIBNETFILTER_QUEUE
-    /* Enable NFQ Capture
-    */
-    if(opts->config[CONF_ENABLE_NFQ_CAPTURE] == NULL)
-        set_config_entry(opts, CONF_ENABLE_NFQ_CAPTURE, DEF_ENABLE_NFQ_CAPTURE);
-
-    if((strncasecmp(opts->config[CONF_ENABLE_NFQ_CAPTURE], "Y", 1) == 0) &&
-            !opts->enable_nfq_capture)
-    {
-        opts->enable_nfq_capture = 1;
-    }
-
-    /* NFQ Interface
-    */
-    if(opts->config[CONF_NFQ_INTERFACE] == NULL)
-        set_config_entry(opts, CONF_NFQ_INTERFACE, DEF_NFQ_INTERFACE);
-
-    /* NFQ port.
-    */
-    if(opts->config[CONF_NFQ_PORT] == NULL)
-        set_config_entry(opts, CONF_NFQ_PORT, DEF_NFQ_PORT);
-
-    /* NFQ Queue Number
-    */
-    if(opts->config[CONF_NFQ_QUEUE_NUMBER] == NULL)
-        set_config_entry(opts, CONF_NFQ_QUEUE_NUMBER,
-            DEF_NFQ_QUEUE_NUMBER);
-
-    /* NFQ Chain
-    */
-    if(opts->config[CONF_NFQ_CHAIN] == NULL)
-        set_config_entry(opts, CONF_NFQ_CHAIN, DEF_NFQ_CHAIN);
-
-    /* NFQ Table
-    */
-    if(opts->config[CONF_NFQ_TABLE] == NULL)
-        set_config_entry(opts, CONF_NFQ_TABLE, DEF_NFQ_TABLE);
-
-    /* NFQ loop delay
-    */
-    if(opts->config[CONF_NFQ_LOOP_SLEEP] == NULL)
-        set_config_entry(opts, CONF_NFQ_LOOP_SLEEP, DEF_CONF_NFQ_LOOP_SLEEP);
-#endif
 
     /* Enable UDP server.
     */
@@ -1046,6 +999,7 @@ set_preconfig_entries(fko_srv_options_t *opts)
 /* Initialize program configuration via config file and/or command-line
  * switches.
 */
+//初始化程序配置通过配置文件或命令行选项。
 void
 config_init(fko_srv_options_t *opts, int argc, char **argv)
 {
@@ -1084,7 +1038,7 @@ config_init(fko_srv_options_t *opts, int argc, char **argv)
                 fprintf(stdout, "fwknopd server %s, compiled for firewall bin: %s\n",
                         MY_VERSION, FIREWALL_EXE);
                 clean_exit(opts, NO_FW_CLEANUP, EXIT_SUCCESS);
-            case 'k':
+            case 'k':										//生成Rijndael 和HMAC密钥。
                 opts->key_gen = 1;
                 break;
             case KEY_GEN_FILE:
@@ -1376,11 +1330,6 @@ config_init(fko_srv_options_t *opts, int argc, char **argv)
             case 'l':
                 set_config_entry(opts, CONF_LOCALE, optarg);
                 break;
-#if USE_LIBNETFILTER_QUEUE
-            case 'n':
-                opts->enable_nfq_capture = 1;
-                break;
-#endif
             case 'O':
                 /* This was handled earlier */
                 break;
@@ -1497,10 +1446,6 @@ usage(void)
       " -K, --kill              - Kill the currently running fwknopd.\n"
       " -l, --locale            - Provide a locale setting other than the system\n"
       "                           default.\n"
-#if USE_LIBNETFILTER_QUEUE
-      " -n, --nfq-capture       - Capture packets using libnetfilter_queue (falls\n"
-      "                           back to UDP server mode if not used).\n"
-#endif
       " -O, --override-config   - Specify a file with configuration entries that will\n"
       "                           overide those in fwknopd.conf\n"
       " -p, --pid-file          - Specify an alternate fwknopd.pid file.\n"

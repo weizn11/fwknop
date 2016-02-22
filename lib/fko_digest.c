@@ -1,12 +1,13 @@
-/**
- * \file lib/fko_digest.c
+/*
+ *****************************************************************************
  *
- * \brief Create the base64-encoded digest for the current spa data. The
+ * File:    fko_digest.c
+ *
+ * Purpose: Create the base64-encoded digest for the current spa data. The
  *          digest used is determined by the digest_type setting in the
  *          fko context.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -140,6 +141,7 @@ set_digest(char *data, char **digest, short digest_type, int *digest_len)
     fiu_return_on("set_digest_calloc", FKO_ERROR_MEMORY_ALLOCATION);
 #endif
 
+	//选择摘要类型计算data的HASH.
     switch(digest_type)
     {
         case FKO_DIGEST_MD5:
@@ -190,26 +192,6 @@ set_digest(char *data, char **digest, short digest_type, int *digest_len)
             sha512_base64(md,
                 (unsigned char*)data, data_len);
             *digest_len = SHA512_B64_LEN;
-            break;
-
-        case FKO_DIGEST_SHA3_256:
-            md = calloc(1, MD_HEX_SIZE(SHA3_256_DIGEST_LEN)+1);
-            if(md == NULL)
-                return(FKO_ERROR_MEMORY_ALLOCATION);
-
-            sha3_256_base64(md,
-                (unsigned char*)data, data_len);
-            *digest_len = SHA3_256_B64_LEN;
-            break;
-
-        case FKO_DIGEST_SHA3_512:
-            md = calloc(1, MD_HEX_SIZE(SHA3_512_DIGEST_LEN)+1);
-            if(md == NULL)
-                return(FKO_ERROR_MEMORY_ALLOCATION);
-
-            sha3_512_base64(md,
-                (unsigned char*)data, data_len);
-            *digest_len = SHA3_512_B64_LEN;
             break;
 
         default:
@@ -271,6 +253,7 @@ fko_set_raw_spa_digest(fko_ctx_t ctx)
     fiu_return_on("fko_set_raw_spa_digest_val", FKO_ERROR_MISSING_ENCODED_DATA);
 #endif
 
+	//计算ctx->encrypted_msg的摘要(default:SHA256)，存在ctx->raw_digest。
     return set_digest(ctx->encrypted_msg, &ctx->raw_digest,
         ctx->raw_digest_type, &ctx->raw_digest_len);
 }

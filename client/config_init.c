@@ -1,10 +1,11 @@
 /**
- * \file    client/config_init.c
+ ******************************************************************************
+ *
+ * \file    config_init.c
  *
  * \brief   Command-line and config file processing for fwknop client.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -37,7 +38,7 @@
 #include <fcntl.h>
 
 #ifdef WIN32
-  #define STDIN_FILENO 0
+#define STDIN_FILENO 0
 #endif
 
 #define RC_PARAM_TEMPLATE           "%-24s    %s\n"                     /*!< Template to define param = val in a rc file */
@@ -52,8 +53,8 @@
 #define LF_CHAR                     0x0A                                /*!< Hexadecimal value associated to the LF char */
 
 #ifdef HAVE_C_UNIT_TESTS
-  #include "cunit_common.h"
-  DECLARE_TEST_SUITE(config_init, "Config init test suite");
+#include "cunit_common.h"
+DECLARE_TEST_SUITE(config_init, "Config init test suite");
 #endif
 
 /**
@@ -210,22 +211,23 @@ generate_keys(fko_cli_options_t *options)
     int res;
 
     /* If asked, we have to generate the keys */
+	//用户传入了key-gen参数。
     if(options->key_gen)
     {
         /* Zero out the key buffers */
         memset(&(options->key_base64), 0x00, sizeof(options->key_base64));
         memset(&(options->hmac_key_base64), 0x00, sizeof(options->hmac_key_base64));
 
-        /* Generate the key through libfko */
+        //通过libfko生成密钥。
         res = fko_key_gen(options->key_base64, options->key_len,
-                options->hmac_key_base64, options->hmac_key_len,
-                options->hmac_type);
+                          options->hmac_key_base64, options->hmac_key_len,
+                          options->hmac_type);
 
-        /* Exit upon key generation failure*/
+        //密钥生成失败则退出程序。
         if(res != FKO_SUCCESS)
         {
             log_msg(LOG_VERBOSITY_ERROR, "%s: fko_key_gen: Error %i - %s",
-                MY_NAME, res, fko_errstr(res));
+                    MY_NAME, res, fko_errstr(res));
             exit(EXIT_FAILURE);
         }
 
@@ -561,7 +563,7 @@ is_rc_param(const char *line, rc_file_param_t *param)
     if(sscanf(line, "%s %[^ ;\t\n\r#]", var, val) != 2)
     {
         log_msg(LOG_VERBOSITY_WARNING,
-            "*Invalid entry in '%s'", line);
+                "*Invalid entry in '%s'", line);
         return 0;
     }
 
@@ -584,12 +586,12 @@ is_rc_param(const char *line, rc_file_param_t *param)
 }
 
 /**
- * \brief Dump available stanzas from a fwknoprc file
+ * @brief Dump available stanzas from a fwknoprc file
  *
  * This function parses a rcfile and looks for configured stanzas.
  * They are all displayed except the default stanza.
  *
- * \param rcfile full path to the rcfile to parse
+ * @param rcfile full path to the rcfile to parse
  */
 static int
 dump_configured_stanzas_from_rcfile(const char* rcfile)
@@ -602,7 +604,7 @@ dump_configured_stanzas_from_rcfile(const char* rcfile)
     if ((rc = fopen(rcfile, "r")) == NULL)
     {
         log_msg(LOG_VERBOSITY_WARNING, "Unable to open rc file: %s: %s",
-            rcfile, strerror(errno));
+                rcfile, strerror(errno));
 
         return EXIT_FAILURE;
     }
@@ -642,27 +644,28 @@ dump_configured_stanzas_from_rcfile(const char* rcfile)
 static void
 set_rc_file(char *rcfile, fko_cli_options_t *options)
 {
-    int     rcf_offset;
+    int     rcf_offset; //用户根目录路径长度
     char    *homedir;
 
     memset(rcfile, 0x0, MAX_PATH_LEN);
 
     if(options->rc_file[0] == 0x0)
     {
+        //源文件地址未被读取到程序中
 #ifdef WIN32
         homedir = getenv("USERPROFILE");
 #else
-        homedir = getenv("HOME");
+        homedir = getenv("HOME");   //获取当前用户的根目录
 #endif
 
         if(homedir == NULL)
         {
             log_msg(LOG_VERBOSITY_ERROR, "Warning: Unable to determine HOME directory.\n"
-                " No .fwknoprc file processed.");
+                    " No .fwknoprc file processed.");
             exit(EXIT_FAILURE);
         }
 
-        strlcpy(rcfile, homedir, MAX_PATH_LEN);
+        strlcpy(rcfile, homedir, MAX_PATH_LEN); //返回当前用户根目录
 
         rcf_offset = strlen(rcfile);
 
@@ -673,22 +676,19 @@ set_rc_file(char *rcfile, fko_cli_options_t *options)
         if(rcf_offset > (MAX_PATH_LEN - 11))
         {
             log_msg(LOG_VERBOSITY_ERROR, "Warning: Path to .fwknoprc file is too long.\n"
-                " No .fwknoprc file processed.");
+                    " No .fwknoprc file processed.");
             exit(EXIT_FAILURE);
         }
 
-        rcfile[rcf_offset] = PATH_SEP;
-        strlcat(rcfile, ".fwknoprc", MAX_PATH_LEN);
+        rcfile[rcf_offset] = PATH_SEP;  //在路径最后添上'\'
+        strlcat(rcfile, ".fwknoprc", MAX_PATH_LEN); //路径后添加资源文件名
     }
     else
     {
         strlcpy(rcfile, options->rc_file, MAX_PATH_LEN);
     }
 
-    /* Check rc file permissions - if anything other than user read/write,
-     * then throw a warning.  This change was made to help ensure that the
-     * client consumes a proper rc file with strict permissions set (thanks
-     * to Fernando Arnaboldi from IOActive for pointing this out).
+    /* 检查rc文件权限 - 只允许配置文件的权限被设置为600.
     */
     if(verify_file_perms_ownership(rcfile) != 1)
         exit(EXIT_FAILURE);
@@ -706,18 +706,19 @@ keys_status(fko_cli_options_t *options)
     {
         if(options->key_gen_file[0] != '\0')
         {
+        	//--key-gen-file=<file>:新建保存密钥的文件。
             if ((key_gen_file_ptr = fopen(options->key_gen_file, "w")) == NULL)
             {
                 log_msg(LOG_VERBOSITY_ERROR, "Unable to create key gen file: %s: %s",
-                    options->key_gen_file, strerror(errno));
+                        options->key_gen_file, strerror(errno));
                 exit(EXIT_FAILURE);
             }
             fprintf(key_gen_file_ptr, "KEY_BASE64: %s\nHMAC_KEY_BASE64: %s\n",
-                options->key_base64, options->hmac_key_base64);
+                    options->key_base64, options->hmac_key_base64);
             fclose(key_gen_file_ptr);
             log_msg(LOG_VERBOSITY_NORMAL,
                     "[+] Wrote Rijndael and HMAC keys to: %s",
-                options->key_gen_file);
+                    options->key_gen_file);
         }
         else
         {
@@ -725,7 +726,7 @@ keys_status(fko_cli_options_t *options)
             {
                 set_rc_file(rcfile, options);
                 log_msg(LOG_VERBOSITY_NORMAL,
-                    "[+] Wrote Rijndael and HMAC keys to rc file: %s", rcfile);
+                        "[+] Wrote Rijndael and HMAC keys to rc file: %s", rcfile);
             }
             else
                 log_msg(LOG_VERBOSITY_NORMAL,
@@ -754,21 +755,29 @@ parse_time_offset(const char *offset_str, int *offset)
     char offset_digits[MAX_TIME_STR_LEN] = {0};
 
     j=0;
-    for (i=0; i < os_len; i++) {
-        if (isdigit(offset_str[i])) {
+    for (i=0; i < os_len; i++)
+    {
+        if (isdigit(offset_str[i]))
+        {
             offset_digits[j] = offset_str[i];
             j++;
             if(j >= MAX_TIME_STR_LEN)
             {
                 return 0;
             }
-        } else if (offset_str[i] == 'm' || offset_str[i] == 'M') {
+        }
+        else if (offset_str[i] == 'm' || offset_str[i] == 'M')
+        {
             offset_type = TIME_OFFSET_MINUTES;
             break;
-        } else if (offset_str[i] == 'h' || offset_str[i] == 'H') {
+        }
+        else if (offset_str[i] == 'h' || offset_str[i] == 'H')
+        {
             offset_type = TIME_OFFSET_HOURS;
             break;
-        } else if (offset_str[i] == 'd' || offset_str[i] == 'D') {
+        }
+        else if (offset_str[i] == 'd' || offset_str[i] == 'D')
+        {
             offset_type = TIME_OFFSET_DAYS;
             break;
         }
@@ -780,7 +789,7 @@ parse_time_offset(const char *offset_str, int *offset)
         return 0;
 
     *offset = strtol_wrapper(offset_digits, 0, (2 << 15),
-            NO_EXIT_UPON_ERR, &is_err);
+                             NO_EXIT_UPON_ERR, &is_err);
 
     /* Apply the offset_type multiplier
     */
@@ -802,10 +811,11 @@ create_fwknoprc(const char *rcfile)
     rcfile_fd = open(rcfile, FWKNOPRC_OFLAGS ,FWKNOPRC_MODE);
 
     // If an error occured ...
-    if (rcfile_fd == -1) {
-            log_msg(LOG_VERBOSITY_WARNING, "Unable to create initial rc file: %s: %s",
+    if (rcfile_fd == -1)
+    {
+        log_msg(LOG_VERBOSITY_WARNING, "Unable to create initial rc file: %s: %s",
                 rcfile, strerror(errno));
-            return(-1);
+        return(-1);
     }
 
     // Free the rcfile descriptor
@@ -814,85 +824,85 @@ create_fwknoprc(const char *rcfile)
     if ((rc = fopen(rcfile, "w")) == NULL)
     {
         log_msg(LOG_VERBOSITY_WARNING, "Unable to write default setup to rcfile: %s: %s",
-            rcfile, strerror(errno));
+                rcfile, strerror(errno));
         return(-1);
     }
 
     fprintf(rc,
-        "# .fwknoprc\n"
-        "##############################################################################\n"
-        "#\n"
-        "# Firewall Knock Operator (fwknop) client rc file.\n"
-        "#\n"
-        "# This file contains user-specific fwknop client configuration default\n"
-        "# and named parameter sets for specific invocations of the fwknop client.\n"
-        "#\n"
-        "# Each section (or stanza) is identified and started by a line in this\n"
-        "# file that contains a single identifier surrounded by square brackets.\n"
-        "# It is this identifier (or name) that is used from the fwknop command line\n"
-        "# via the '-n <name>' argument to reference the corresponding stanza.\n"
-        "#\n"
-        "# The parameters within the stanza typically match corresponding client \n"
-        "# command-line parameters.\n"
-        "#\n"
-        "# The first one should always be `[default]' as it defines the global\n"
-        "# default settings for the user. These override the program defaults\n"
-        "# for these parameters.  If a named stanza is used, its entries will\n"
-        "# override any of the default values.  Command-line options will trump them\n"
-        "# all.\n"
-        "#\n"
-        "# Subsequent stanzas will have only the overriding and destination\n"
-        "# specific parameters.\n"
-        "#\n"
-        "# Lines starting with `#' and empty lines are ignored.\n"
-        "#\n"
-        "# See the fwknop.8 man page for a complete list of valid parameters\n"
-        "# and their values.\n"
-        "#\n"
-        "##############################################################################\n"
-        "#\n"
-        "# We start with the 'default' stanza.  Uncomment and edit for your\n"
-        "# preferences.  The client will use its built-in default for those items\n"
-        "# that are commented out.\n"
-        "#\n"
-        "[default]\n"
-        "\n"
-        "#DIGEST_TYPE         sha256\n"
-        "#FW_TIMEOUT          30\n"
-        "#SPA_SERVER_PORT     62201\n"
-        "#SPA_SERVER_PROTO    udp\n"
-        "#ALLOW_IP            <ip addr>\n"
-        "#SPOOF_USER          <username>\n"
-        "#SPOOF_SOURCE_IP     <IPaddr>\n"
-        "#TIME_OFFSET         0\n"
-        "#USE_GPG             N\n"
-        "#GPG_HOMEDIR         /path/to/.gnupg\n"
-        "#GPG_EXE             /path/to/gpg\n"
-        "#GPG_SIGNER          <signer ID>\n"
-        "#GPG_RECIPIENT       <recipient ID>\n"
-        "#NO_SAVE_ARGS        N\n"
-        "\n"
-        "# User-provided named stanzas:\n"
-        "\n"
-        "# Example for a destination server of 192.168.1.20 to open access to\n"
-        "# SSH for an IP that is resolved externally, and one with a NAT request\n"
-        "# for a specific source IP that maps port 8088 on the server\n"
-        "# to port 88 on 192.168.1.55 with timeout.\n"
-        "#\n"
-        "#[myssh]\n"
-        "#SPA_SERVER          192.168.1.20\n"
-        "#ACCESS              tcp/22\n"
-        "#ALLOW_IP            resolve\n"
-        "#\n"
-        "#[mynatreq]\n"
-        "#SPA_SERVER          192.168.1.20\n"
-        "#ACCESS              tcp/8088\n"
-        "#ALLOW_IP            10.21.2.6\n"
-        "#NAT_ACCESS          192.168.1.55,88\n"
-        "#CLIENT_TIMEOUT      60\n"
-        "#\n"
-        "\n"
-    );
+            "# .fwknoprc\n"
+            "##############################################################################\n"
+            "#\n"
+            "# Firewall Knock Operator (fwknop) client rc file.\n"
+            "#\n"
+            "# This file contains user-specific fwknop client configuration default\n"
+            "# and named parameter sets for specific invocations of the fwknop client.\n"
+            "#\n"
+            "# Each section (or stanza) is identified and started by a line in this\n"
+            "# file that contains a single identifier surrounded by square brackets.\n"
+            "# It is this identifier (or name) that is used from the fwknop command line\n"
+            "# via the '-n <name>' argument to reference the corresponding stanza.\n"
+            "#\n"
+            "# The parameters within the stanza typically match corresponding client \n"
+            "# command-line parameters.\n"
+            "#\n"
+            "# The first one should always be `[default]' as it defines the global\n"
+            "# default settings for the user. These override the program defaults\n"
+            "# for these parameters.  If a named stanza is used, its entries will\n"
+            "# override any of the default values.  Command-line options will trump them\n"
+            "# all.\n"
+            "#\n"
+            "# Subsequent stanzas will have only the overriding and destination\n"
+            "# specific parameters.\n"
+            "#\n"
+            "# Lines starting with `#' and empty lines are ignored.\n"
+            "#\n"
+            "# See the fwknop.8 man page for a complete list of valid parameters\n"
+            "# and their values.\n"
+            "#\n"
+            "##############################################################################\n"
+            "#\n"
+            "# We start with the 'default' stanza.  Uncomment and edit for your\n"
+            "# preferences.  The client will use its built-in default for those items\n"
+            "# that are commented out.\n"
+            "#\n"
+            "[default]\n"
+            "\n"
+            "#DIGEST_TYPE         sha256\n"
+            "#FW_TIMEOUT          30\n"
+            "#SPA_SERVER_PORT     62201\n"
+            "#SPA_SERVER_PROTO    udp\n"
+            "#ALLOW_IP            <ip addr>\n"
+            "#SPOOF_USER          <username>\n"
+            "#SPOOF_SOURCE_IP     <IPaddr>\n"
+            "#TIME_OFFSET         0\n"
+            "#USE_GPG             N\n"
+            "#GPG_HOMEDIR         /path/to/.gnupg\n"
+            "#GPG_EXE             /path/to/gpg\n"
+            "#GPG_SIGNER          <signer ID>\n"
+            "#GPG_RECIPIENT       <recipient ID>\n"
+            "#NO_SAVE_ARGS        N\n"
+            "\n"
+            "# User-provided named stanzas:\n"
+            "\n"
+            "# Example for a destination server of 192.168.1.20 to open access to\n"
+            "# SSH for an IP that is resolved externally, and one with a NAT request\n"
+            "# for a specific source IP that maps port 8088 on the server\n"
+            "# to port 88 on 192.168.1.55 with timeout.\n"
+            "#\n"
+            "#[myssh]\n"
+            "#SPA_SERVER          192.168.1.20\n"
+            "#ACCESS              tcp/22\n"
+            "#ALLOW_IP            resolve\n"
+            "#\n"
+            "#[mynatreq]\n"
+            "#SPA_SERVER          192.168.1.20\n"
+            "#ACCESS              tcp/8088\n"
+            "#ALLOW_IP            10.21.2.6\n"
+            "#NAT_ACCESS          192.168.1.55,88\n"
+            "#CLIENT_TIMEOUT      60\n"
+            "#\n"
+            "\n"
+           );
 
     fclose(rc);
 
@@ -989,9 +999,8 @@ parse_rc_param(fko_cli_options_t *options, const char *var_name, char * val)
             if(! parse_time_offset(val, &options->time_offset_minus))
                 parse_error = -1;
         }
-        else
-            if (! parse_time_offset(val, &options->time_offset_plus))
-                parse_error = -1;
+        else if (! parse_time_offset(val, &options->time_offset_plus))
+            parse_error = -1;
 
         if(parse_error == -1)
             log_msg(LOG_VERBOSITY_WARNING,
@@ -1086,8 +1095,8 @@ parse_rc_param(fko_cli_options_t *options, const char *var_name, char * val)
         if (! is_base64((unsigned char *) val, strlen(val)))
         {
             log_msg(LOG_VERBOSITY_WARNING,
-                "KEY_BASE64 argument '%s' doesn't look like base64-encoded data.",
-                val);
+                    "KEY_BASE64 argument '%s' doesn't look like base64-encoded data.",
+                    val);
             parse_error = -1;
         }
         strlcpy(options->key_base64, val, sizeof(options->key_base64));
@@ -1105,8 +1114,8 @@ parse_rc_param(fko_cli_options_t *options, const char *var_name, char * val)
         if (! is_base64((unsigned char *) val, strlen(val)))
         {
             log_msg(LOG_VERBOSITY_WARNING,
-                "GPG_SIGNING_KEY_BASE64 argument '%s' doesn't look like base64-encoded data.",
-                val);
+                    "GPG_SIGNING_KEY_BASE64 argument '%s' doesn't look like base64-encoded data.",
+                    val);
             parse_error = -1;
         }
         strlcpy(options->key_base64, val, sizeof(options->key_base64));
@@ -1119,7 +1128,7 @@ parse_rc_param(fko_cli_options_t *options, const char *var_name, char * val)
         if(tmpint < 0)
         {
             log_msg(LOG_VERBOSITY_WARNING,
-                    "HMAC_DIGEST_TYPE argument '%s' must be one of {md5,sha1,sha256,sha384,sha512,sha3_256,sha3_512}",
+                    "HMAC_DIGEST_TYPE argument '%s' must be one of {md5,sha1,sha256,sha384,sha512}",
                     val);
             parse_error = -1;
         }
@@ -1134,8 +1143,8 @@ parse_rc_param(fko_cli_options_t *options, const char *var_name, char * val)
         if (! is_base64((unsigned char *) val, strlen(val)))
         {
             log_msg(LOG_VERBOSITY_WARNING,
-                "HMAC_KEY_BASE64 argument '%s' doesn't look like base64-encoded data.",
-                val);
+                    "HMAC_KEY_BASE64 argument '%s' doesn't look like base64-encoded data.",
+                    val);
             parse_error = -1;
         }
         strlcpy(options->hmac_key_base64, val, sizeof(options->hmac_key_base64));
@@ -1172,7 +1181,7 @@ parse_rc_param(fko_cli_options_t *options, const char *var_name, char * val)
     else if (var->pos == FWKNOP_CLI_ARG_HMAC_KEY_FILE)
     {
         strlcpy(options->get_key_file, val,
-            sizeof(options->get_hmac_key_file));
+                sizeof(options->get_hmac_key_file));
     }
     /* NAT Access Request */
     else if (var->pos == FWKNOP_CLI_ARG_NAT_ACCESS)
@@ -1326,147 +1335,147 @@ add_single_var_to_rc(FILE* fhandle, short var_pos, fko_cli_options_t *options)
     /* Select the argument to add and store its string value into val */
     switch (var->pos)
     {
-        case FWKNOP_CLI_ARG_DIGEST_TYPE :
-            digest_inttostr(options->digest_type, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_SPA_SERVER_PROTO :
-            proto_inttostr(options->spa_proto, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_SPA_SERVER_PORT :
-            snprintf(val, sizeof(val)-1, "%d", options->spa_dst_port);
-            break;
-        case FWKNOP_CLI_ARG_SPA_SOURCE_PORT :
-            snprintf(val, sizeof(val)-1, "%d", options->spa_src_port);
-            break;
-        case FWKNOP_CLI_ARG_FW_TIMEOUT :
-            snprintf(val, sizeof(val)-1, "%d", options->fw_timeout);
-            break;
-        case FWKNOP_CLI_ARG_ALLOW_IP :
-            strlcpy(val, options->allow_ip_str, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_TIME_OFFSET :
-            if (options->time_offset_minus != 0)
-                snprintf(val, sizeof(val)-1, "-%d", options->time_offset_minus);
-            else if (options->time_offset_plus != 0)
-                snprintf(val, sizeof(val)-1, "%d", options->time_offset_plus);
-            else;
-            break;
-        case FWKNOP_CLI_ARG_ENCRYPTION_MODE :
-            enc_mode_inttostr(options->encryption_mode, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_USE_GPG :
-            bool_to_yesno(options->use_gpg, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_USE_GPG_AGENT :
-            bool_to_yesno(options->use_gpg_agent, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_GPG_RECIPIENT :
-            strlcpy(val, options->gpg_recipient_key, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_GPG_SIGNER :
-            strlcpy(val, options->gpg_signer_key, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_GPG_HOMEDIR :
-            strlcpy(val, options->gpg_home_dir, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_GPG_EXE_PATH :
-            strlcpy(val, options->gpg_exe, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_GPG_NO_SIGNING_PW :
-            bool_to_yesno(options->gpg_no_signing_pw, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_SPOOF_USER :
-            strlcpy(val, options->spoof_user, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_SPOOF_SOURCE_IP :
-            strlcpy(val, options->spoof_ip_src_str, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_ACCESS :
-            strlcpy(val, options->access_str, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_SPA_SERVER :
-            strlcpy(val, options->spa_server_str, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_RAND_PORT :
-            bool_to_yesno(options->rand_port, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_KEY_FILE :
-            strlcpy(val, options->get_key_file, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_HMAC_KEY_FILE :
-            strlcpy(val, options->get_hmac_key_file, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_KEY_RIJNDAEL:
-            strlcpy(val, options->key, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_KEY_RIJNDAEL_BASE64:
-            strlcpy(val, options->key_base64, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_KEY_HMAC_BASE64:
-            strlcpy(val, options->hmac_key_base64, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_KEY_HMAC:
-            strlcpy(val, options->hmac_key, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_HMAC_DIGEST_TYPE :
-            hmac_digest_inttostr(options->hmac_type, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_USE_HMAC :
-            bool_to_yesno(options->use_hmac, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_USE_WGET_USER_AGENT :
-            bool_to_yesno(options->use_wget_user_agent, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_NAT_ACCESS :
-            strlcpy(val, options->nat_access_str, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_HTTP_USER_AGENT :
-            strlcpy(val, options->http_user_agent, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_RESOLVE_URL :
-            if (options->resolve_url != NULL)
-                strlcpy(val, options->resolve_url, sizeof(val));
-            else;
-            break;
-        case FWKNOP_CLI_ARG_SERVER_RESOLVE_IPV4:
-            bool_to_yesno(options->spa_server_resolve_ipv4, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_NAT_LOCAL :
-            bool_to_yesno(options->nat_local, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_NAT_RAND_PORT :
-            bool_to_yesno(options->nat_rand_port, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_NAT_PORT :
-            snprintf(val, sizeof(val)-1, "%d", options->nat_port);
-            break;
-        case FWKNOP_CLI_ARG_VERBOSE:
-            if((options->verbose == 0) || (options->verbose == 1))
-                bool_to_yesno(options->verbose, val, sizeof(val));
-            else
-                snprintf(val, sizeof(val)-1, "%d", options->verbose);
-            break;
-        case FWKNOP_CLI_ARG_RESOLVE_IP_HTTPS:
-            bool_to_yesno(options->resolve_ip_http_https, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_RESOLVE_IP_HTTP:
-            bool_to_yesno(options->resolve_ip_http_https, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_RESOLVE_HTTP_ONLY:
-            bool_to_yesno(options->resolve_http_only, val, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_WGET_CMD :
-            if (options->wget_bin != NULL)
-                strlcpy(val, options->wget_bin, sizeof(val));
-            break;
-        case FWKNOP_CLI_ARG_NO_SAVE_ARGS :
-            bool_to_yesno(options->no_save_args, val, sizeof(val));
-            break;
-        default:
-            log_msg(LOG_VERBOSITY_WARNING,
-                    "Warning from add_single_var_to_rc() : Bad variable position %u",
-                    var->pos);
-            return;
+    case FWKNOP_CLI_ARG_DIGEST_TYPE :
+        digest_inttostr(options->digest_type, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_SPA_SERVER_PROTO :
+        proto_inttostr(options->spa_proto, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_SPA_SERVER_PORT :
+        snprintf(val, sizeof(val)-1, "%d", options->spa_dst_port);
+        break;
+    case FWKNOP_CLI_ARG_SPA_SOURCE_PORT :
+        snprintf(val, sizeof(val)-1, "%d", options->spa_src_port);
+        break;
+    case FWKNOP_CLI_ARG_FW_TIMEOUT :
+        snprintf(val, sizeof(val)-1, "%d", options->fw_timeout);
+        break;
+    case FWKNOP_CLI_ARG_ALLOW_IP :
+        strlcpy(val, options->allow_ip_str, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_TIME_OFFSET :
+        if (options->time_offset_minus != 0)
+            snprintf(val, sizeof(val)-1, "-%d", options->time_offset_minus);
+        else if (options->time_offset_plus != 0)
+            snprintf(val, sizeof(val)-1, "%d", options->time_offset_plus);
+        else;
+        break;
+    case FWKNOP_CLI_ARG_ENCRYPTION_MODE :
+        enc_mode_inttostr(options->encryption_mode, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_USE_GPG :
+        bool_to_yesno(options->use_gpg, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_USE_GPG_AGENT :
+        bool_to_yesno(options->use_gpg_agent, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_GPG_RECIPIENT :
+        strlcpy(val, options->gpg_recipient_key, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_GPG_SIGNER :
+        strlcpy(val, options->gpg_signer_key, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_GPG_HOMEDIR :
+        strlcpy(val, options->gpg_home_dir, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_GPG_EXE_PATH :
+        strlcpy(val, options->gpg_exe, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_GPG_NO_SIGNING_PW :
+        bool_to_yesno(options->gpg_no_signing_pw, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_SPOOF_USER :
+        strlcpy(val, options->spoof_user, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_SPOOF_SOURCE_IP :
+        strlcpy(val, options->spoof_ip_src_str, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_ACCESS :
+        strlcpy(val, options->access_str, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_SPA_SERVER :
+        strlcpy(val, options->spa_server_str, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_RAND_PORT :
+        bool_to_yesno(options->rand_port, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_KEY_FILE :
+        strlcpy(val, options->get_key_file, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_HMAC_KEY_FILE :
+        strlcpy(val, options->get_hmac_key_file, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_KEY_RIJNDAEL:
+        strlcpy(val, options->key, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_KEY_RIJNDAEL_BASE64:
+        strlcpy(val, options->key_base64, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_KEY_HMAC_BASE64:
+        strlcpy(val, options->hmac_key_base64, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_KEY_HMAC:
+        strlcpy(val, options->hmac_key, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_HMAC_DIGEST_TYPE :
+        hmac_digest_inttostr(options->hmac_type, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_USE_HMAC :
+        bool_to_yesno(options->use_hmac, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_USE_WGET_USER_AGENT :
+        bool_to_yesno(options->use_wget_user_agent, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_NAT_ACCESS :
+        strlcpy(val, options->nat_access_str, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_HTTP_USER_AGENT :
+        strlcpy(val, options->http_user_agent, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_RESOLVE_URL :
+        if (options->resolve_url != NULL)
+            strlcpy(val, options->resolve_url, sizeof(val));
+        else;
+        break;
+    case FWKNOP_CLI_ARG_SERVER_RESOLVE_IPV4:
+        bool_to_yesno(options->spa_server_resolve_ipv4, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_NAT_LOCAL :
+        bool_to_yesno(options->nat_local, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_NAT_RAND_PORT :
+        bool_to_yesno(options->nat_rand_port, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_NAT_PORT :
+        snprintf(val, sizeof(val)-1, "%d", options->nat_port);
+        break;
+    case FWKNOP_CLI_ARG_VERBOSE:
+        if((options->verbose == 0) || (options->verbose == 1))
+            bool_to_yesno(options->verbose, val, sizeof(val));
+        else
+            snprintf(val, sizeof(val)-1, "%d", options->verbose);
+        break;
+    case FWKNOP_CLI_ARG_RESOLVE_IP_HTTPS:
+        bool_to_yesno(options->resolve_ip_http_https, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_RESOLVE_IP_HTTP:
+        bool_to_yesno(options->resolve_ip_http_https, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_RESOLVE_HTTP_ONLY:
+        bool_to_yesno(options->resolve_http_only, val, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_WGET_CMD :
+        if (options->wget_bin != NULL)
+            strlcpy(val, options->wget_bin, sizeof(val));
+        break;
+    case FWKNOP_CLI_ARG_NO_SAVE_ARGS :
+        bool_to_yesno(options->no_save_args, val, sizeof(val));
+        break;
+    default:
+        log_msg(LOG_VERBOSITY_WARNING,
+                "Warning from add_single_var_to_rc() : Bad variable position %u",
+                var->pos);
+        return;
     }
 
     log_msg(LOG_VERBOSITY_DEBUG,
@@ -1521,13 +1530,12 @@ process_rc_section(char *section_name, fko_cli_options_t *options)
     char            line[MAX_LINE_LEN] = {0};
     char            rcfile[MAX_PATH_LEN] = {0};
     char            curr_stanza[MAX_LINE_LEN] = {0};
-    rc_file_param_t param;
+    rc_file_param_t param;  //包含参数名和参数值
     int             rc_section_found = 0;
 
-    set_rc_file(rcfile, options);
+    set_rc_file(rcfile, options);   //设置源文件路径
 
-    /* Open the rc file for reading, if it does not exist, then create
-     * an initial .fwknoprc file with defaults and go on.
+    /* 若文件不存在则创建
     */
     if ((rc = fopen(rcfile, "r")) == NULL)
     {
@@ -1538,13 +1546,13 @@ process_rc_section(char *section_name, fko_cli_options_t *options)
         }
         else
             log_msg(LOG_VERBOSITY_WARNING, "Unable to open rc file: %s: %s",
-                rcfile, strerror(errno));
+                    rcfile, strerror(errno));
 
         return -1;
     }
 
     log_msg(LOG_VERBOSITY_DEBUG, "process_rc_section() : Parsing section '%s' ...",
-                section_name);
+            section_name);
 
     while ((fgets(line, MAX_LINE_LEN, rc)) != NULL)
     {
@@ -1575,6 +1583,7 @@ process_rc_section(char *section_name, fko_cli_options_t *options)
         /* We have not found a valid parameter */
         else if (is_rc_param(line, &param) == 0)
         {
+            //正常解析行为参数名和参数值，解析出个数不为2则返回0
             do_exit = 1;  /* We don't allow improperly formatted lines */
             break;
         }
@@ -1582,11 +1591,11 @@ process_rc_section(char *section_name, fko_cli_options_t *options)
         /* We have a valid parameter */
         else
         {
-           if(parse_rc_param(options, param.name, param.val) < 0)
+            if(parse_rc_param(options, param.name, param.val) < 0)
             {
                 log_msg(LOG_VERBOSITY_WARNING,
-                    "Parameter error in %s, line %i: var=%s, val=%s",
-                    rcfile, line_num, param.name, param.val);
+                        "Parameter error in %s, line %i: var=%s, val=%s",
+                        rcfile, line_num, param.name, param.val);
                 do_exit = 1;
             }
         }
@@ -1626,12 +1635,13 @@ update_rc(fko_cli_options_t *options, fko_var_bitmask_t *bitmask)
     rc_file_param_t param;                              /* Structure to contain a conf. variable name with its value  */
     fko_var_t      *var;
 
+	//设置rc文件相关参数，包括检查rc文件权限等。
     set_rc_file(rcfile, options);
 
     strlcpy(rcfile_update, rcfile, sizeof(rcfile_update));
     strlcat(rcfile_update, ".updated", sizeof(rcfile_update));
 
-    /* Create a new temporary rc file */
+    /* 创建一个临时的rc文件*/
     rcfile_fd = open(rcfile_update, FWKNOPRC_OFLAGS, FWKNOPRC_MODE);
     if (rcfile_fd == -1)
     {
@@ -1642,8 +1652,7 @@ update_rc(fko_cli_options_t *options, fko_var_bitmask_t *bitmask)
     }
     close(rcfile_fd);
 
-    /* Open the current rcfile and a temporary one respectively in read and
-     * write mode */
+    /* 打开当前的rc文件和一个临时的文件分别用来读和写 */
     if ((rc = fopen(rcfile, "r")) == NULL)
     {
         log_msg(LOG_VERBOSITY_WARNING,
@@ -1662,6 +1671,7 @@ update_rc(fko_cli_options_t *options, fko_var_bitmask_t *bitmask)
     }
 
     /* Go through the file line by line */
+	//仔细检查文件的每一行
     stanza_found = 0;
     while ((fgets(line, MAX_LINE_LEN, rc)) != NULL)
     {
@@ -1710,7 +1720,7 @@ update_rc(fko_cli_options_t *options, fko_var_bitmask_t *bitmask)
             else if (is_rc_param(line, &param))
             {
                 if (   ((var=lookup_var_by_name(param.name)) != NULL)
-                    && var_is_critical(var->pos) )
+                        && var_is_critical(var->pos) )
                 {
                     if (ask_overwrite_var(var->name, curr_stanza))
                         continue;
@@ -1789,8 +1799,8 @@ validate_options(fko_cli_options_t *options)
 {
 
     if ( (options->use_rc_stanza[0] != 0x0)
-        && (options->got_named_stanza == 0)
-        && (options->save_rc_stanza == 0) )
+            && (options->got_named_stanza == 0)
+            && (options->save_rc_stanza == 0) )
     {
         log_msg(LOG_VERBOSITY_ERROR,
                 "Named configuration stanza: [%s] was not found.",
@@ -1806,7 +1816,7 @@ validate_options(fko_cli_options_t *options)
         if (options->spa_server_str[0] == 0x0)
         {
             log_msg(LOG_VERBOSITY_ERROR,
-                "Must use --destination unless --test mode is used");
+                    "Must use --destination unless --test mode is used");
             exit(EXIT_FAILURE);
         }
 
@@ -1817,15 +1827,15 @@ validate_options(fko_cli_options_t *options)
      * the version, and must use one of [-s|-R|-a].
     */
     if(!options->test
-        && !options->key_gen
-        && !options->version
-        && !options->show_last_command
-        && !options->run_last_command)
+            && !options->key_gen
+            && !options->version
+            && !options->show_last_command
+            && !options->run_last_command)
     {
         if (options->spa_server_str[0] == 0x0)
         {
             log_msg(LOG_VERBOSITY_ERROR,
-                "Must use --destination unless --test mode is used");
+                    "Must use --destination unless --test mode is used");
             exit(EXIT_FAILURE);
         }
 
@@ -1837,14 +1847,14 @@ validate_options(fko_cli_options_t *options)
             if(options->allow_ip_str[0] == 0x0)
             {
                 log_msg(LOG_VERBOSITY_ERROR,
-                    "Must use one of [-s|-R|-a] to specify IP for SPA access.");
+                        "Must use one of [-s|-R|-a] to specify IP for SPA access.");
                 exit(EXIT_FAILURE);
             }
             else if(options->verbose
                     && strncmp(options->allow_ip_str, "0.0.0.0", strlen("0.0.0.0")) == 0)
             {
                 log_msg(LOG_VERBOSITY_WARNING,
-                    "[-] WARNING: Should use -a or -R to harden SPA against potential MITM attacks");
+                        "[-] WARNING: Should use -a or -R to harden SPA against potential MITM attacks");
             }
         }
     }
@@ -1859,7 +1869,7 @@ validate_options(fko_cli_options_t *options)
         if(! is_valid_ipv4_addr(options->allow_ip_str))
         {
             log_msg(LOG_VERBOSITY_ERROR,
-                "Invalid allow IP specified for SPA access");
+                    "Invalid allow IP specified for SPA access");
             exit(EXIT_FAILURE);
         }
     }
@@ -1884,12 +1894,12 @@ validate_options(fko_cli_options_t *options)
     if(options->resolve_ip_http_https || options->spa_proto == FKO_PROTO_HTTP)
         if (options->http_user_agent[0] == '\0')
             snprintf(options->http_user_agent, HTTP_MAX_USER_AGENT_LEN,
-                "%s%s", "Fwknop/", MY_VERSION);
+                     "%s%s", "Fwknop/", MY_VERSION);
 
     if(options->http_proxy[0] != 0x0 && options->spa_proto != FKO_PROTO_HTTP)
     {
         log_msg(LOG_VERBOSITY_ERROR,
-            "Cannot set --http-proxy with a non-HTTP protocol.");
+                "Cannot set --http-proxy with a non-HTTP protocol.");
         exit(EXIT_FAILURE);
     }
 
@@ -1900,7 +1910,7 @@ validate_options(fko_cli_options_t *options)
         if(strlen(options->gpg_recipient_key) == 0)
         {
             log_msg(LOG_VERBOSITY_ERROR,
-                "Must specify --gpg-recipient-key when GPG is used.");
+                    "Must specify --gpg-recipient-key when GPG is used.");
             exit(EXIT_FAILURE);
         }
     }
@@ -1909,7 +1919,7 @@ validate_options(fko_cli_options_t *options)
             && ! options->use_gpg)
     {
         log_msg(LOG_VERBOSITY_ERROR,
-            "Must specify GPG recipient/signing keys when Asymmetric encryption mode is used.");
+                "Must specify GPG recipient/signing keys when Asymmetric encryption mode is used.");
         exit(EXIT_FAILURE);
     }
 
@@ -1917,7 +1927,7 @@ validate_options(fko_cli_options_t *options)
             && options->use_hmac)
     {
         log_msg(LOG_VERBOSITY_ERROR,
-            "Legacy encryption mode is incompatible with HMAC usage.");
+                "Legacy encryption mode is incompatible with HMAC usage.");
         exit(EXIT_FAILURE);
     }
 
@@ -1977,33 +1987,35 @@ config_init(fko_cli_options_t *options, int argc, char **argv)
      * rc file is used.
     */
     while ((cmd_arg = getopt_long(argc, argv,
-            GETOPTS_OPTION_STRING, cmd_opts, &index)) != -1) {
-        switch(cmd_arg) {
-            case 'h':
-                usage();
-                exit(EXIT_SUCCESS);
-            case NO_SAVE_ARGS:
-                options->no_save_args = 1;
-                break;
-            case 'n':
-                strlcpy(options->use_rc_stanza, optarg, sizeof(options->use_rc_stanza));
-                break;
-            case SAVE_RC_STANZA:
-                options->save_rc_stanza = 1;
-                break;
-            case STANZA_LIST:
-                options->stanza_list = 1;
-                break;
-            case 'E':
-                strlcpy(options->args_save_file, optarg, sizeof(options->args_save_file));
-                break;
-            case RC_FILE_PATH:
-                strlcpy(options->rc_file, optarg, sizeof(options->rc_file));
-                break;
-            case 'v':
-                options->verbose++;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_VERBOSE, &var_bitmask);
-                break;
+                                  GETOPTS_OPTION_STRING, cmd_opts, &index)) != -1)
+    {
+        switch(cmd_arg)
+        {
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+        case NO_SAVE_ARGS:					//不储存命令行参数
+            options->no_save_args = 1;
+            break;
+        case 'n':												//认证Server地址。
+            strlcpy(options->use_rc_stanza, optarg, sizeof(options->use_rc_stanza));    //复制参数中目的IP
+            break;
+        case SAVE_RC_STANZA:											//--save-rc-stanza=<stanza name>:设置stanza的名称。
+            options->save_rc_stanza = 1;
+            break;
+        case STANZA_LIST:												//列出.fwknoprc中所有的stanza。
+            options->stanza_list = 1;
+            break;
+        case 'E':
+            strlcpy(options->args_save_file, optarg, sizeof(options->args_save_file));		//--save-args-file:将命令行参数保存到指定的文件中，没加这个选项并且没加--no-save-args选项则会默认将命令行参数报讯到~/.fwknop.run中
+            break;
+        case RC_FILE_PATH:														//--rc-file=<file>:指定fwknoprc文件路径
+            strlcpy(options->rc_file, optarg, sizeof(options->rc_file));
+            break;
+        case 'v':
+            options->verbose++;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_VERBOSE, &var_bitmask);	//--verbose:输出详细信息
+            break;
         }
     }
 
@@ -2019,7 +2031,7 @@ config_init(fko_cli_options_t *options, int argc, char **argv)
 
     /* First process the .fwknoprc file.
     */
-    process_rc_section(RC_SECTION_DEFAULT, options);
+    process_rc_section(RC_SECTION_DEFAULT, options);	//处理fwknoprc文件
 
     /* Load the user specified stanza from .fwknoprc file */
     if ( (options->got_named_stanza) && (options->save_rc_stanza == 0) )
@@ -2030,410 +2042,412 @@ config_init(fko_cli_options_t *options, int argc, char **argv)
     optind = 0;
 
     while ((cmd_arg = getopt_long(argc, argv,
-            GETOPTS_OPTION_STRING, cmd_opts, &index)) != -1) {
+                                  GETOPTS_OPTION_STRING, cmd_opts, &index)) != -1)
+    {
 
-        switch(cmd_arg) {
-            case 'a':
-                strlcpy(options->allow_ip_str, optarg, sizeof(options->allow_ip_str));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_ALLOW_IP, &var_bitmask);
-                break;
-            case 'A':
-                strlcpy(options->access_str, optarg, sizeof(options->access_str));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_ACCESS, &var_bitmask);
-                break;
-            case 'b':
-                options->save_packet_file_append = 1;
-                break;
-            case 'B':
-                strlcpy(options->save_packet_file, optarg, sizeof(options->save_packet_file));
-                break;
-            case 'C':
-                strlcpy(options->server_command, optarg, sizeof(options->server_command));
-                break;
-            case 'D':
-                strlcpy(options->spa_server_str, optarg, sizeof(options->spa_server_str));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SERVER, &var_bitmask);
-                break;
-            case 'E':
-                strlcpy(options->args_save_file, optarg, sizeof(options->args_save_file));
-                break;
-            case 'f':
-                options->fw_timeout = strtol_wrapper(optarg, 0,
-                        (2 << 16), NO_EXIT_UPON_ERR, &is_err);
-                if(is_err != FKO_SUCCESS)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR, "--fw-timeout must be within [%d-%d]",
-                            0, (2 << 16));
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_FW_TIMEOUT, &var_bitmask);
-                break;
-            case FAULT_INJECTION_TAG:
-#if HAVE_LIBFIU
-                strlcpy(options->fault_injection_tag, optarg, sizeof(options->fault_injection_tag));
-#else
-                log_msg(LOG_VERBOSITY_ERROR,
-                    "fwknop not compiled with fault injection support.", optarg);
+        switch(cmd_arg)
+        {
+        case 'a':
+            strlcpy(options->allow_ip_str, optarg, sizeof(options->allow_ip_str));		//源IP 选项
+            add_var_to_bitmask(FWKNOP_CLI_ARG_ALLOW_IP, &var_bitmask);	//FWKNOP_CLI_ARG_ALLOW_IP:5
+            break;
+        case 'A':
+            strlcpy(options->access_str, optarg, sizeof(options->access_str));	//请求开放的服务
+            add_var_to_bitmask(FWKNOP_CLI_ARG_ACCESS, &var_bitmask);
+            break;
+        case 'b':
+            options->save_packet_file_append = 1;	//--save-packet-append:追加SPA数据包到-B所指定的文件中
+            break;
+        case 'B':	
+            strlcpy(options->save_packet_file, optarg, sizeof(options->save_packet_file));		//--save-packet:保存新建的SPA数据包到指定的文件中
+            break;
+        case 'C':
+            strlcpy(options->server_command, optarg, sizeof(options->server_command));		//--server-cmd:让fwknop Server运行指定的命令
+            break;
+        case 'D':
+            strlcpy(options->spa_server_str, optarg, sizeof(options->spa_server_str));		//指定fwknop Server地址
+            add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SERVER, &var_bitmask);
+            break;
+        case 'E':
+            strlcpy(options->args_save_file, optarg, sizeof(options->args_save_file));		//--save-args-file:将命令行参数保存到指定的文件中，没加这个选项并且没加--no-save-args选项则会默认将命令行参数报讯到~/.fwknop.run中
+            break;
+        case 'f':
+            options->fw_timeout = strtol_wrapper(optarg, 0,
+                                                 (2 << 16), NO_EXIT_UPON_ERR, &is_err);		//--fw-timeout:指定远程防火墙规则保持允许访问的超时时间，默认保持30秒。但已建立的连接会一直保持。
+            if(is_err != FKO_SUCCESS)
+            {
+                log_msg(LOG_VERBOSITY_ERROR, "--fw-timeout must be within [%d-%d]",
+                        0, (2 << 16));
                 exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_FW_TIMEOUT, &var_bitmask);
+            break;
+        case FAULT_INJECTION_TAG:
+#if HAVE_LIBFIU
+            strlcpy(options->fault_injection_tag, optarg, sizeof(options->fault_injection_tag));
+#else
+            log_msg(LOG_VERBOSITY_ERROR,
+                    "fwknop not compiled with fault injection support.", optarg);
+            exit(EXIT_FAILURE);
 #endif
-                break;
-            case 'g':
-            case GPG_ENCRYPTION:
-                options->use_gpg = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
-                break;
-            case 'G':
-                strlcpy(options->get_key_file, optarg, sizeof(options->get_key_file));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_FILE, &var_bitmask);
-                break;
-            case GET_HMAC_KEY:
-                strlcpy(options->get_hmac_key_file, optarg,
+            break;
+        case 'g':														//--gpg-encryption:使用GPG加密SPA数据包，未指明则默认使用Rijndael方式加密。
+        case GPG_ENCRYPTION:
+            options->use_gpg = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
+            break;
+        case 'G':
+            strlcpy(options->get_key_file, optarg, sizeof(options->get_key_file));	//--get-key:从指定文件中加载密钥
+            add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_FILE, &var_bitmask);
+            break;
+        case GET_HMAC_KEY:													//--get-hmac-key=<file>:加载HMAC密钥从指定的文件中。
+            strlcpy(options->get_hmac_key_file, optarg,
                     sizeof(options->get_hmac_key_file));
-                options->use_hmac = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_HMAC_KEY_FILE, &var_bitmask);
-                break;
-            case 'H':
-                options->spa_proto = FKO_PROTO_HTTP;
-                strlcpy(options->http_proxy, optarg, sizeof(options->http_proxy));
-                break;
-            case 'k':
-                options->key_gen = 1;
-                break;
-            case 'K':
-                options->key_gen = 1;
-                strlcpy(options->key_gen_file, optarg, sizeof(options->key_gen_file));
-                break;
-            case KEY_RIJNDAEL:
-                strlcpy(options->key, optarg, sizeof(options->key));
-                options->have_key = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_RIJNDAEL, &var_bitmask);
-                break;
-            case KEY_RIJNDAEL_BASE64:
-                if (! is_base64((unsigned char *) optarg, strlen(optarg)))
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
+            options->use_hmac = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_HMAC_KEY_FILE, &var_bitmask);
+            break;
+        case 'H':															//--http-proxy=<proxy-host>[:port]:通过指定的HTTP代理认证。
+            options->spa_proto = FKO_PROTO_HTTP;
+            strlcpy(options->http_proxy, optarg, sizeof(options->http_proxy));
+            break;
+        case 'k':															//--key-gen:生成Rijndael和HMAC密钥。
+            options->key_gen = 1;
+            break;
+        case 'K':																//--key-gen-file=<file>:将生成的密钥写入指定的文件，若已存在则覆盖写入。若这个参数未指定，则--key-gen将把密钥输出到标准输出流中。
+            options->key_gen = 1;
+            strlcpy(options->key_gen_file, optarg, sizeof(options->key_gen_file));
+            break;
+        case KEY_RIJNDAEL:														//--key-rijndael=<key>:指定Rijndael密钥
+            strlcpy(options->key, optarg, sizeof(options->key));
+            options->have_key = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_RIJNDAEL, &var_bitmask);
+            break;
+        case KEY_RIJNDAEL_BASE64:												//--key-base64-rijndael=<key>:指定通过BASE64编码的Rijndael 密钥。
+            if (! is_base64((unsigned char *) optarg, strlen(optarg)))
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
                         "Base64 encoded Rijndael argument '%s' doesn't look like base64-encoded data.",
                         optarg);
-                    exit(EXIT_FAILURE);
-                }
-                strlcpy(options->key_base64, optarg, sizeof(options->key_base64));
-                options->have_base64_key = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_RIJNDAEL_BASE64, &var_bitmask);
-                break;
-            case KEY_HMAC_BASE64:
-                if (! is_base64((unsigned char *) optarg, strlen(optarg)))
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
+                exit(EXIT_FAILURE);
+            }
+            strlcpy(options->key_base64, optarg, sizeof(options->key_base64));
+            options->have_base64_key = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_RIJNDAEL_BASE64, &var_bitmask);
+            break;
+        case KEY_HMAC_BASE64:													//--key-base64-hmac=<key>:指定通过BASE64编码的HMAC密钥。
+            if (! is_base64((unsigned char *) optarg, strlen(optarg)))
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
                         "Base64 encoded HMAC argument '%s' doesn't look like base64-encoded data.",
                         optarg);
-                    exit(EXIT_FAILURE);
-                }
-                strlcpy(options->hmac_key_base64, optarg, sizeof(options->hmac_key_base64));
-                options->have_hmac_base64_key = 1;
-                options->use_hmac = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_HMAC_BASE64, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
-                break;
-            case KEY_HMAC:
-                strlcpy(options->hmac_key, optarg, sizeof(options->hmac_key));
-                options->have_hmac_key = 1;
-                options->use_hmac = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_HMAC, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
-                break;
-            case KEY_LEN:
-                options->key_len = strtol_wrapper(optarg, 1,
-                        MAX_KEY_LEN, NO_EXIT_UPON_ERR, &is_err);
-                if(is_err != FKO_SUCCESS)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
-                            "Invalid key length '%s', must be in [%d-%d]",
-                            optarg, 1, MAX_KEY_LEN);
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case HMAC_DIGEST_TYPE:
-                if((options->hmac_type = hmac_digest_strtoint(optarg)) < 0)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
-                        "* Invalid hmac digest type: %s, use {md5,sha1,sha256,sha384,sha512,sha3_256,sha3_512}",
+                exit(EXIT_FAILURE);
+            }
+            strlcpy(options->hmac_key_base64, optarg, sizeof(options->hmac_key_base64));
+            options->have_hmac_base64_key = 1;
+            options->use_hmac = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_HMAC_BASE64, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
+            break;
+        case KEY_HMAC:														//--key-hmac=<key>:指定原始HMAC密钥。
+            strlcpy(options->hmac_key, optarg, sizeof(options->hmac_key));
+            options->have_hmac_key = 1;
+            options->use_hmac = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_KEY_HMAC, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
+            break;
+        case KEY_LEN:													//--key-len=<length>:指定Rijndael密钥生成的比特长度，当前最大为128比特。
+            options->key_len = strtol_wrapper(optarg, 1,
+                                              MAX_KEY_LEN, NO_EXIT_UPON_ERR, &is_err);
+            if(is_err != FKO_SUCCESS)
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
+                        "Invalid key length '%s', must be in [%d-%d]",
+                        optarg, 1, MAX_KEY_LEN);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case HMAC_DIGEST_TYPE:										//--hmac-digest-type=<digest>:设置生成HMAC摘要的算法来加密SPA数据包(MD5, SHA1, SHA256 (the default), SHA384, and SHA512)。
+            if((options->hmac_type = hmac_digest_strtoint(optarg)) < 0)
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
+                        "* Invalid hmac digest type: %s, use {md5,sha1,sha256,sha384,sha512}",
                         optarg);
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_HMAC_DIGEST_TYPE, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
-                options->use_hmac = 1;
-                break;
-            case HMAC_KEY_LEN:
-                options->hmac_key_len = strtol_wrapper(optarg, 1,
-                        MAX_KEY_LEN, NO_EXIT_UPON_ERR, &is_err);
-                if(is_err != FKO_SUCCESS)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
-                            "Invalid hmac key length '%s', must be in [%d-%d]",
-                            optarg, 1, MAX_KEY_LEN);
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
-                options->use_hmac = 1;
-                break;
-            case SPA_ICMP_TYPE:
-                options->spa_icmp_type = strtol_wrapper(optarg, 0,
-                        MAX_ICMP_TYPE, NO_EXIT_UPON_ERR, &is_err);
-                if(is_err != FKO_SUCCESS)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
-                            "Invalid icmp type '%s', must be in [%d-%d]",
-                            optarg, 0, MAX_ICMP_TYPE);
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case SPA_ICMP_CODE:
-                options->spa_icmp_code = strtol_wrapper(optarg, 0,
-                        MAX_ICMP_CODE, NO_EXIT_UPON_ERR, &is_err);
-                if(is_err != FKO_SUCCESS)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
-                            "Invalid icmp code '%s', must be in [%d-%d]",
-                            optarg, 0, MAX_ICMP_CODE);
-                    exit(EXIT_FAILURE);
-                }
-                break;
-            case 'l':
-                options->run_last_command = 1;
-                break;
-            case 'm':
-            case FKO_DIGEST_NAME:
-                if((options->digest_type = digest_strtoint(optarg)) < 0)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
-                        "* Invalid digest type: %s, use {md5,sha1,sha256,sha384,sha512,sha3_256,sha3_512}",
-                    optarg);
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_DIGEST_TYPE, &var_bitmask);
-                break;
-            case 'M':
-            case ENCRYPTION_MODE:
-                if((options->encryption_mode = enc_mode_strtoint(optarg)) < 0)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR,
+                exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_HMAC_DIGEST_TYPE, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
+            options->use_hmac = 1;
+            break;
+        case HMAC_KEY_LEN:											//--hmac-key-len=<length>:指定生成HMAC密钥的比特长度，当前最大为128比特。
+            options->hmac_key_len = strtol_wrapper(optarg, 1,
+                                                   MAX_KEY_LEN, NO_EXIT_UPON_ERR, &is_err);
+            if(is_err != FKO_SUCCESS)
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
+                        "Invalid hmac key length '%s', must be in [%d-%d]",
+                        optarg, 1, MAX_KEY_LEN);
+                exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
+            options->use_hmac = 1;
+            break;
+        case SPA_ICMP_TYPE:									//--icmp-type=<type>:在ICMP模式下，指定ICMP类型值在SPA过程中设置ICMP头部，默认为ICMP应答包。
+            options->spa_icmp_type = strtol_wrapper(optarg, 0,
+                                                    MAX_ICMP_TYPE, NO_EXIT_UPON_ERR, &is_err);
+            if(is_err != FKO_SUCCESS)
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
+                        "Invalid icmp type '%s', must be in [%d-%d]",
+                        optarg, 0, MAX_ICMP_TYPE);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case SPA_ICMP_CODE:								//--icmp-code=<code>:在ICMP模式下，指定ICMP code值在SPA过程中设置ICMP头，默认为0.
+            options->spa_icmp_code = strtol_wrapper(optarg, 0,
+                                                    MAX_ICMP_CODE, NO_EXIT_UPON_ERR, &is_err);
+            if(is_err != FKO_SUCCESS)
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
+                        "Invalid icmp code '%s', must be in [%d-%d]",
+                        optarg, 0, MAX_ICMP_CODE);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'l':														//--last-cmd:调用以前执行过的命令行，从~/.fwknop中读取。
+            options->run_last_command = 1;
+            break;
+        case 'm':												//--digest-type=<digest>:指定SPA数据包中的消息摘要算法，MD5, SHA1, SHA256 (the default), SHA384, and SHA512.
+        case FKO_DIGEST_NAME:
+            if((options->digest_type = digest_strtoint(optarg)) < 0)
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
+                        "* Invalid digest type: %s, use {md5,sha1,sha256,sha384,sha512}",
+                        optarg);
+                exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_DIGEST_TYPE, &var_bitmask);
+            break;
+        case 'M':												//--encryption-mode=<mode>:指定SPA数据包的加密方式。
+        case ENCRYPTION_MODE:
+            if((options->encryption_mode = enc_mode_strtoint(optarg)) < 0)
+            {
+                log_msg(LOG_VERBOSITY_ERROR,
                         "* Invalid encryption mode: %s, use {CBC,CTR,legacy,Asymmetric}",
-                    optarg);
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_ENCRYPTION_MODE, &var_bitmask);
-                break;
-            case NO_SAVE_ARGS:
-                options->no_save_args = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_NO_SAVE_ARGS, &var_bitmask);
-                break;
-            case 'n':
-                /* We already handled this earlier, so we do nothing here
-                */
-                break;
-            case 'N':
-                strlcpy(options->nat_access_str, optarg, sizeof(options->nat_access_str));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_ACCESS, &var_bitmask);
-                break;
-            case 'p':
-                options->spa_dst_port = strtol_wrapper(optarg, 0,
-                        MAX_PORT, EXIT_UPON_ERR, &is_err);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SERVER_PORT, &var_bitmask);
-                break;
-            case 'P':
-                if((options->spa_proto = proto_strtoint(optarg)) < 0)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR, "Unrecognized protocol: %s", optarg);
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SERVER_PROTO, &var_bitmask);
-                break;
-            case 'Q':
-                strlcpy(options->spoof_ip_src_str, optarg, sizeof(options->spoof_ip_src_str));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_SPOOF_SOURCE_IP, &var_bitmask);
-                break;
-            case RC_FILE_PATH:
-                strlcpy(options->rc_file, optarg, sizeof(options->rc_file));
-                break;
-            case 'r':
-                options->rand_port = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_RAND_PORT, &var_bitmask);
-                break;
-            case 'R':
-                options->resolve_ip_http_https = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_IP_HTTPS, &var_bitmask);
-                break;
-            case RESOLVE_HTTP_ONLY:
-                options->resolve_http_only = 1;
-                options->resolve_ip_http_https = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_HTTP_ONLY, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_IP_HTTPS, &var_bitmask);
-                break;
-            case RESOLVE_URL:
-                if(options->resolve_url != NULL)
-                    free(options->resolve_url);
-                rlen = strlen(optarg) + 1;
-                options->resolve_url = calloc(1, rlen);
-                if(options->resolve_url == NULL)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR, "Memory allocation error for resolve URL.");
-                    exit(EXIT_FAILURE);
-                }
-                strlcpy(options->resolve_url, optarg, rlen);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_URL, &var_bitmask);
-                break;
-            case SERVER_RESOLVE_IPV4:
-                options->spa_server_resolve_ipv4 = 1;
-                break;
-            case 'w':
-                if(options->wget_bin != NULL)
-                    free(options->wget_bin);
-                rlen = strlen(optarg) + 1;
-                options->wget_bin = calloc(1, rlen);
-                if(options->wget_bin == NULL)
-                {
-                    log_msg(LOG_VERBOSITY_ERROR, "Memory allocation error for resolve URL.");
-                    exit(EXIT_FAILURE);
-                }
-                strlcpy(options->wget_bin, optarg, rlen);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_WGET_CMD, &var_bitmask);
-                break;
-            case SHOW_LAST_ARGS:
-                options->show_last_command = 1;
-                break;
-            case 's':
-                strlcpy(options->allow_ip_str, "0.0.0.0", sizeof(options->allow_ip_str));
-                break;
-            case 'S':
-                options->spa_src_port = strtol_wrapper(optarg, 0,
-                        MAX_PORT, EXIT_UPON_ERR, &is_err);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SOURCE_PORT, &var_bitmask);
-                break;
-            case SAVE_RC_STANZA:
-                /* We already handled this earlier, so we do nothing here
-                */
-                break;
-            case 'T':
-                options->test = 1;
-                break;
-            case 'u':
-                strlcpy(options->http_user_agent, optarg, sizeof(options->http_user_agent));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_HTTP_USER_AGENT, &var_bitmask);
-                break;
-            case 'U':
-                strlcpy(options->spoof_user, optarg, sizeof(options->spoof_user));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_SPOOF_USER, &var_bitmask);
-                break;
-            case 'v':
-                /* Handled earlier.
-                */
-                break;
-            case 'V':
-                options->version = 1;
-                break;
-            case GPG_RECIP_KEY:
-                options->use_gpg = 1;
-                strlcpy(options->gpg_recipient_key, optarg, sizeof(options->gpg_recipient_key));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_RECIPIENT, &var_bitmask);
-                break;
-            case GPG_SIGNER_KEY:
-                options->use_gpg = 1;
-                strlcpy(options->gpg_signer_key, optarg, sizeof(options->gpg_signer_key));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_SIGNER, &var_bitmask);
-                break;
-            case GPG_HOME_DIR:
-                options->use_gpg = 1;
-                strlcpy(options->gpg_home_dir, optarg, sizeof(options->gpg_home_dir));
-                chop_char(options->gpg_home_dir, PATH_SEP);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_HOMEDIR, &var_bitmask);
-                break;
-            case GPG_EXE_PATH:
-                options->use_gpg = 1;
-                strlcpy(options->gpg_exe, optarg, sizeof(options->gpg_exe));
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_EXE_PATH, &var_bitmask);
-                break;
-            case GPG_AGENT:
-                options->use_gpg = 1;
-                options->use_gpg_agent = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG_AGENT, &var_bitmask);
-                break;
-            case GPG_ALLOW_NO_SIGNING_PW:
-                options->use_gpg = 1;
-                options->gpg_no_signing_pw = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_NO_SIGNING_PW, &var_bitmask);
-                break;
-            case NAT_LOCAL:
-                options->nat_local = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_LOCAL, &var_bitmask);
-                break;
-            case NAT_RAND_PORT:
-                options->nat_rand_port = 1;
-                add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_RAND_PORT, &var_bitmask);
-                break;
-            case NAT_PORT:
-                options->nat_port = strtol_wrapper(optarg, 0,
-                        MAX_PORT, EXIT_UPON_ERR, &is_err);
-                add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_PORT, &var_bitmask);
-                break;
-            case TIME_OFFSET_PLUS:
-                if (! parse_time_offset(optarg, &options->time_offset_plus))
-                {
-                    log_msg(LOG_VERBOSITY_WARNING,
+                        optarg);
+                exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_ENCRYPTION_MODE, &var_bitmask);
+            break;
+        case NO_SAVE_ARGS:
+            options->no_save_args = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_NO_SAVE_ARGS, &var_bitmask);
+            break;
+        case 'n':													//--named-config=<stanza name>:指定stanza的名称
+            /* We already handled this earlier, so we do nothing here
+            */
+            break;
+        case 'N':													//--nat-access=<internalIP:forwardPort>:
+            strlcpy(options->nat_access_str, optarg, sizeof(options->nat_access_str));
+            add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_ACCESS, &var_bitmask);
+            break;
+        case 'p':														//--server-port=<port>:指定fwknop Server端口
+            options->spa_dst_port = strtol_wrapper(optarg, 0,
+                                                   MAX_PORT, EXIT_UPON_ERR, &is_err);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SERVER_PORT, &var_bitmask);
+            break;
+        case 'P':														//--server-proto=<protocol>:设置SPA协议(udp, tcp, http, udpraw, tcpraw, or icmp)
+            if((options->spa_proto = proto_strtoint(optarg)) < 0)
+            {
+                log_msg(LOG_VERBOSITY_ERROR, "Unrecognized protocol: %s", optarg);
+                exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SERVER_PROTO, &var_bitmask);
+            break;
+        case 'Q':													//--spoof-src=<IP>:在客户端发送SPA数据包时伪造源IP。
+            strlcpy(options->spoof_ip_src_str, optarg, sizeof(options->spoof_ip_src_str));
+            add_var_to_bitmask(FWKNOP_CLI_ARG_SPOOF_SOURCE_IP, &var_bitmask);
+            break;
+        case RC_FILE_PATH:
+            strlcpy(options->rc_file, optarg, sizeof(options->rc_file));
+            break;
+        case 'r':												//--rand-port:命令fwknop Client向Server发送的SPA数据包的目的端口是随机的，在10000-65535之间。Server端必须设置PCAP_FILTER变量来接收数据包
+            options->rand_port = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_RAND_PORT, &var_bitmask);
+            break;
+        case 'R':												//--resolve-ip-https:
+            options->resolve_ip_http_https = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_IP_HTTPS, &var_bitmask);
+            break;
+        case RESOLVE_HTTP_ONLY:
+            options->resolve_http_only = 1;
+            options->resolve_ip_http_https = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_HTTP_ONLY, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_IP_HTTPS, &var_bitmask);
+            break;
+        case RESOLVE_URL:
+            if(options->resolve_url != NULL)
+                free(options->resolve_url);
+            rlen = strlen(optarg) + 1;
+            options->resolve_url = calloc(1, rlen);
+            if(options->resolve_url == NULL)
+            {
+                log_msg(LOG_VERBOSITY_ERROR, "Memory allocation error for resolve URL.");
+                exit(EXIT_FAILURE);
+            }
+            strlcpy(options->resolve_url, optarg, rlen);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_RESOLVE_URL, &var_bitmask);
+            break;
+        case SERVER_RESOLVE_IPV4:
+            options->spa_server_resolve_ipv4 = 1;
+            break;
+        case 'w':
+            if(options->wget_bin != NULL)
+                free(options->wget_bin);
+            rlen = strlen(optarg) + 1;
+            options->wget_bin = calloc(1, rlen);
+            if(options->wget_bin == NULL)
+            {
+                log_msg(LOG_VERBOSITY_ERROR, "Memory allocation error for resolve URL.");
+                exit(EXIT_FAILURE);
+            }
+            strlcpy(options->wget_bin, optarg, rlen);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_WGET_CMD, &var_bitmask);
+            break;
+        case SHOW_LAST_ARGS:
+            options->show_last_command = 1;
+            break;
+        case 's':
+            strlcpy(options->allow_ip_str, "0.0.0.0", sizeof(options->allow_ip_str));
+            break;
+        case 'S':
+            options->spa_src_port = strtol_wrapper(optarg, 0,
+                                                   MAX_PORT, EXIT_UPON_ERR, &is_err);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_SPA_SOURCE_PORT, &var_bitmask);
+            break;
+        case SAVE_RC_STANZA:
+            /* We already handled this earlier, so we do nothing here
+            */
+            break;
+        case 'T':
+            options->test = 1;
+            break;
+        case 'u':
+            strlcpy(options->http_user_agent, optarg, sizeof(options->http_user_agent));
+            add_var_to_bitmask(FWKNOP_CLI_ARG_HTTP_USER_AGENT, &var_bitmask);
+            break;
+        case 'U':
+            strlcpy(options->spoof_user, optarg, sizeof(options->spoof_user));
+            add_var_to_bitmask(FWKNOP_CLI_ARG_SPOOF_USER, &var_bitmask);
+            break;
+        case 'v':
+            /* Handled earlier.
+            */
+            break;
+        case 'V':
+            options->version = 1;
+            break;
+        case GPG_RECIP_KEY:
+            options->use_gpg = 1;
+            strlcpy(options->gpg_recipient_key, optarg, sizeof(options->gpg_recipient_key));
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_RECIPIENT, &var_bitmask);
+            break;
+        case GPG_SIGNER_KEY:
+            options->use_gpg = 1;
+            strlcpy(options->gpg_signer_key, optarg, sizeof(options->gpg_signer_key));
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_SIGNER, &var_bitmask);
+            break;
+        case GPG_HOME_DIR:
+            options->use_gpg = 1;
+            strlcpy(options->gpg_home_dir, optarg, sizeof(options->gpg_home_dir));
+            chop_char(options->gpg_home_dir, PATH_SEP);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_HOMEDIR, &var_bitmask);
+            break;
+        case GPG_EXE_PATH:
+            options->use_gpg = 1;
+            strlcpy(options->gpg_exe, optarg, sizeof(options->gpg_exe));
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_EXE_PATH, &var_bitmask);
+            break;
+        case GPG_AGENT:
+            options->use_gpg = 1;
+            options->use_gpg_agent = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG_AGENT, &var_bitmask);
+            break;
+        case GPG_ALLOW_NO_SIGNING_PW:
+            options->use_gpg = 1;
+            options->gpg_no_signing_pw = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_GPG, &var_bitmask);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_GPG_NO_SIGNING_PW, &var_bitmask);
+            break;
+        case NAT_LOCAL:
+            options->nat_local = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_LOCAL, &var_bitmask);
+            break;
+        case NAT_RAND_PORT:
+            options->nat_rand_port = 1;
+            add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_RAND_PORT, &var_bitmask);
+            break;
+        case NAT_PORT:
+            options->nat_port = strtol_wrapper(optarg, 0,
+                                               MAX_PORT, EXIT_UPON_ERR, &is_err);
+            add_var_to_bitmask(FWKNOP_CLI_ARG_NAT_PORT, &var_bitmask);
+            break;
+        case TIME_OFFSET_PLUS:
+            if (! parse_time_offset(optarg, &options->time_offset_plus))
+            {
+                log_msg(LOG_VERBOSITY_WARNING,
                         "Invalid time offset: '%s'", optarg);
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_TIME_OFFSET, &var_bitmask);
-                break;
-            case TIME_OFFSET_MINUS:
-                if (! parse_time_offset(optarg, &options->time_offset_minus))
-                {
-                    log_msg(LOG_VERBOSITY_WARNING,
+                exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_TIME_OFFSET, &var_bitmask);
+            break;
+        case TIME_OFFSET_MINUS:
+            if (! parse_time_offset(optarg, &options->time_offset_minus))
+            {
+                log_msg(LOG_VERBOSITY_WARNING,
                         "Invalid time offset: '%s'", optarg);
-                    exit(EXIT_FAILURE);
-                }
-                add_var_to_bitmask(FWKNOP_CLI_ARG_TIME_OFFSET, &var_bitmask);
-                break;
-            case USE_HMAC:
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
-                options->use_hmac = 1;
-                break;
-            case USE_WGET_USER_AGENT:
-                add_var_to_bitmask(FWKNOP_CLI_ARG_USE_WGET_USER_AGENT, &var_bitmask);
-                options->use_wget_user_agent = 1;
-                break;
-            case FORCE_SAVE_RC_STANZA:
-                options->force_save_rc_stanza = 1;
-                break;
-            case FD_SET_STDIN:
-                options->input_fd = STDIN_FILENO;
-                break;
-            case FD_SET_ALT:
+                exit(EXIT_FAILURE);
+            }
+            add_var_to_bitmask(FWKNOP_CLI_ARG_TIME_OFFSET, &var_bitmask);
+            break;
+        case USE_HMAC:
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_HMAC, &var_bitmask);
+            options->use_hmac = 1;
+            break;
+        case USE_WGET_USER_AGENT:
+            add_var_to_bitmask(FWKNOP_CLI_ARG_USE_WGET_USER_AGENT, &var_bitmask);
+            options->use_wget_user_agent = 1;
+            break;
+        case FORCE_SAVE_RC_STANZA:
+            options->force_save_rc_stanza = 1;
+            break;
+        case FD_SET_STDIN:
+            options->input_fd = STDIN_FILENO;
+            break;
+        case FD_SET_ALT:
 #ifdef WIN32
-                log_msg(LOG_VERBOSITY_ERROR, "Read password from FD not supported on Windows");
-                exit(EXIT_FAILURE);
+            log_msg(LOG_VERBOSITY_ERROR, "Read password from FD not supported on Windows");
+            exit(EXIT_FAILURE);
 #endif
-                options->input_fd = strtol_wrapper(optarg, 0,
-                        -1, EXIT_UPON_ERR, &is_err);
-                break;
-            default:
-                usage();
-                exit(EXIT_FAILURE);
+            options->input_fd = strtol_wrapper(optarg, 0,
+                                               -1, EXIT_UPON_ERR, &is_err);
+            break;
+        default:
+            usage();
+            exit(EXIT_FAILURE);
         }
     }
 
     /* Now that we have all of our options set, we can validate them */
-    validate_options(options);
+    validate_options(options);		//检验参数输入是否有效。
 
     /* Generate Rijndael + HMAC keys from /dev/random and base64 encode
     */
-    generate_keys(options);
+    generate_keys(options);		//通过随机数生成密钥。
 
     /* We can upgrade our settings with the parameters set on the command
      * line by the user */
@@ -2448,10 +2462,12 @@ config_init(fko_cli_options_t *options, int argc, char **argv)
         }
         else;
 
+	//处理rc文件
         update_rc(options, &var_bitmask);
     }
     else;
 
+	//--key-gen-file选项，保存密钥至文件中。
     keys_status(options);
 
     return;
@@ -2466,144 +2482,144 @@ usage(void)
             "\n%s client version %s\n%s - http://%s/fwknop/\n",
             MY_NAME, MY_VERSION, MY_DESC, HTTP_RESOLVE_HOST);
     log_msg(LOG_VERBOSITY_NORMAL,
-      "Usage: fwknop -A <port list> [-s|-R|-a] -D <spa_server> [options]\n\n"
-      " -n, --named-config          Specify a named configuration stanza in the\n"
-      "                             '$HOME/.fwknoprc' file to provide some of all\n"
-      "                             of the configuration parameters.\n"
-      "                             If more arguments are set through the command\n"
-      "                             line, the configuration is updated accordingly.\n"
-      " -A, --access                Provide a list of ports/protocols to open\n"
-      "                             on the server (e.g. 'tcp/22').\n"
-      " -a, --allow-ip              Specify IP address to allow within the SPA\n"
-      "                             packet (e.g. '123.2.3.4').  If \n"
-      " -D, --destination           Specify the hostname or IP address of the\n"
-      "                             fwknop server.\n"
-      " --use-hmac                  Add an HMAC to the outbound SPA packet for\n"
-      "                             authenticated encryption.\n"
-      " -h, --help                  Print this usage message and exit.\n"
-      " -B, --save-packet           Save the generated packet data to the\n"
-      "                             specified file.\n"
-      " -b, --save-packet-append    Append the generated packet data to the\n"
-      "                             file specified with the -B option.\n"
-      " -C, --server-cmd            Specify a command that the fwknop server will\n"
-      "                             execute on behalf of the fwknop client..\n"
-      " -N, --nat-access            Gain NAT access to an internal service.\n"
-      " -p, --server-port           Set the destination port for outgoing SPA\n"
-      "                             packet.\n"
-      " -P, --server-proto          Set the protocol (udp, tcp, http, tcpraw,\n"
-      "                             icmp) for the outgoing SPA packet.\n"
-      "                             Note: The 'tcpraw' and 'icmp' modes use raw\n"
-      "                             sockets and thus require root access to use.\n"
-      " -s, --source-ip             Tell the fwknopd server to accept whatever\n"
-      "                             source IP the SPA packet has as the IP that\n"
-      "                             needs access (not recommended, and the\n"
-      "                             fwknopd server can ignore such requests).\n"
-      " -S, --source-port           Set the source port for outgoing SPA packet.\n"
-      " -Q, --spoof-source          Set the source IP for outgoing SPA packet.\n"
-      " -R, --resolve-ip-https      Resolve the external network IP by\n"
-      "                             connecting to a URL such as the default of:\n"
-      "                             https://" HTTP_RESOLVE_HOST HTTP_RESOLVE_URL "\n"
-      "                             with wget in --secure-protocol mode (SSL).\n"
-      "                             The URL can be overridden with the\n"
-      "                             --resolve-url option.\n"
-      "     --resolve-http-only     Force external IP resolution via HTTP instead\n"
-      "                             HTTPS (via the URL mentioned above). This is\n"
-      "                             not recommended since it would open fwknop\n"
-      "                             to potential MITM attacks if the IP resolution\n"
-      "                             HTTP connection is altered en-route by a third\n"
-      "                             party.\n"
-      "     --resolve-url           Override the default URL used for resolving\n"
-      "                             the source IP address.\n"
-      " -u, --user-agent            Set the HTTP User-Agent for resolving the\n"
-      "                             external IP via -R, or for sending SPA\n"
-      "                             packets over HTTP. The default is\n"
-      "                             Fwknop/<version> if this option is not used.\n"
-      "     --use-wget-user-agent   Use the default wget User-Agent string instead\n"
-      "                             of Fwknop/<version>.\n"
-      " -w, --wget-cmd              Manually set the path to wget in -R mode.\n"
-      " -H, --http-proxy            Specify an HTTP proxy host through which the\n"
-      "                             SPA packet will be sent.  The port can also be\n"
-      "                             specified here by following the host/ip with\n"
-      "                             \":<port>\".\n"
-      " -U, --spoof-user            Set the username within outgoing SPA packet.\n"
-      " -l, --last-cmd              Run the fwknop client with the same command\n"
-      "                             line args as the last time it was executed\n"
-      "                             (args are read from the ~/.fwknop.run file).\n"
-      " -G, --get-key               Load an encryption key/password from a file.\n"
-      "     --stdin                 Read the encryption key/password from stdin\n"
-      "     --fd                    Specify the file descriptor to read the\n"
-      "                             encryption key/password from.\n"
-      " -k, --key-gen               Generate SPA Rijndael + HMAC keys.\n"
-      " -K, --key-gen-file          Write generated Rijndael + HMAC keys to a\n"
-      "                             file\n"
-      "     --key-rijndael          Specify the Rijndael key. Since the password is\n"
-      "                             visible to utilities (like 'ps' under Unix)\n"
-      "                             this form should only be used where security is\n"
-      "                             not important.\n"
-      "     --key-base64-rijndael   Specify the base64 encoded Rijndael key. Since\n"
-      "                             the password is visible to utilities (like 'ps'\n"
-      "                             under Unix) this form should only be used where\n"
-      "                             security is not important.\n"
-      "     --key-base64-hmac       Specify the base64 encoded HMAC key. Since the\n"
-      "                             password is visible to utilities (like 'ps'\n"
-      "                             under Unix) this form should only be used where\n"
-      "                             security is not important.\n"
-      " -r, --rand-port             Send the SPA packet over a randomly assigned\n"
-      "                             port (requires a broader pcap filter on the\n"
-      "                             server side than the default of udp 62201).\n"
-      " -T, --test                  Build the SPA packet but do not send it over\n"
-      "                             the network.\n"
-      " -v, --verbose               Set verbose mode (may specify multiple times).\n"
-      " -V, --version               Print version number.\n"
-      " -m, --digest-type           Specify the message digest algorithm to use.\n"
-      "                             (md5, sha1, sha256, sha384, or sha512). The\n"
-      "                             default is sha256.\n"
-      " -M, --encryption-mode       Specify the encryption mode when AES is used\n"
-      "                             for encrypting SPA packets.The default is CBC\n"
-      "                             mode, but others can be chosen such as CFB or\n"
-      "                             OFB as long as this is also specified in the\n"
-      "                             access.conf file on the server side. Note that\n"
-      "                             the string ``legacy'' can be specified in order\n"
-      "                             to generate SPA packets with the old initialization\n"
-      "                             vector strategy used by versions of *fwknop*\n"
-      "                             before 2.5.\n"
-      " -f, --fw-timeout            Specify SPA server firewall timeout from the\n"
-      "                             client side.\n"
-      "     --hmac-digest-type      Set the HMAC digest algorithm (default is\n"
-      "                             sha256). Options are md5, sha1, sha256,\n"
-      "                             sha384, or sha512.\n"
-      "     --icmp-type             Set the ICMP type (used with '-P icmp')\n"
-      "     --icmp-code             Set the ICMP code (used with '-P icmp')\n"
-      "     --gpg-encryption        Use GPG encryption (default is Rijndael).\n"
-      "     --gpg-recipient-key     Specify the recipient GPG key name or ID.\n"
-      "     --gpg-signer-key        Specify the signer's GPG key name or ID.\n"
-      "     --gpg-home-dir          Specify the GPG home directory.\n"
-      "     --gpg-agent             Use GPG agent if available.\n"
-      "     --gpg-exe               Set path to GPG binary.\n"
-      "     --no-save-args          Do not save fwknop command line args to the\n"
-      "                             $HOME/fwknop.run file\n"
-      "     --rc-file               Specify path to the fwknop rc file (default\n"
-      "                             is $HOME/.fwknoprc)\n"
-      "     --server-resolve-ipv4   Force IPv4 address resolution from DNS for\n"
-      "                             SPA server when using a hostname.\n"
-      "     --save-rc-stanza        Save command line arguments to the\n"
-      "                             $HOME/.fwknoprc stanza specified with the\n"
-      "                             -n option.\n"
-      "     --force-stanza          Used with --save-rc-stanza to overwrite all of\n"
-      "                             the variables for the specified stanza\n"
-      "     --stanza-list           Dump a list of the stanzas found in\n"
-      "                             $HOME/.fwknoprc\n"
-      "     --nat-local             Access a local service via a forwarded port\n"
-      "                             on the fwknopd server system.\n"
-      "     --nat-port              Specify the port to forward to access a\n"
-      "                             service via NAT.\n"
-      "     --nat-rand-port         Have the fwknop client assign a random port\n"
-      "                             for NAT access.\n"
-      "     --show-last             Show the last fwknop command line arguments.\n"
-      "     --time-offset-plus      Add time to outgoing SPA packet timestamp.\n"
-      "     --time-offset-minus     Subtract time from outgoing SPA packet\n"
-      "                             timestamp.\n"
-    );
+            "Usage: fwknop -A <port list> [-s|-R|-a] -D <spa_server> [options]\n\n"
+            " -n, --named-config          Specify a named configuration stanza in the\n"
+            "                             '$HOME/.fwknoprc' file to provide some of all\n"
+            "                             of the configuration parameters.\n"
+            "                             If more arguments are set through the command\n"
+            "                             line, the configuration is updated accordingly.\n"
+            " -A, --access                Provide a list of ports/protocols to open\n"
+            "                             on the server (e.g. 'tcp/22').\n"
+            " -a, --allow-ip              Specify IP address to allow within the SPA\n"
+            "                             packet (e.g. '123.2.3.4').  If \n"
+            " -D, --destination           Specify the hostname or IP address of the\n"
+            "                             fwknop server.\n"
+            " --use-hmac                  Add an HMAC to the outbound SPA packet for\n"
+            "                             authenticated encryption.\n"
+            " -h, --help                  Print this usage message and exit.\n"
+            " -B, --save-packet           Save the generated packet data to the\n"
+            "                             specified file.\n"
+            " -b, --save-packet-append    Append the generated packet data to the\n"
+            "                             file specified with the -B option.\n"
+            " -C, --server-cmd            Specify a command that the fwknop server will\n"
+            "                             execute on behalf of the fwknop client..\n"
+            " -N, --nat-access            Gain NAT access to an internal service.\n"
+            " -p, --server-port           Set the destination port for outgoing SPA\n"
+            "                             packet.\n"
+            " -P, --server-proto          Set the protocol (udp, tcp, http, tcpraw,\n"
+            "                             icmp) for the outgoing SPA packet.\n"
+            "                             Note: The 'tcpraw' and 'icmp' modes use raw\n"
+            "                             sockets and thus require root access to use.\n"
+            " -s, --source-ip             Tell the fwknopd server to accept whatever\n"
+            "                             source IP the SPA packet has as the IP that\n"
+            "                             needs access (not recommended, and the\n"
+            "                             fwknopd server can ignore such requests).\n"
+            " -S, --source-port           Set the source port for outgoing SPA packet.\n"
+            " -Q, --spoof-source          Set the source IP for outgoing SPA packet.\n"
+            " -R, --resolve-ip-https      Resolve the external network IP by\n"
+            "                             connecting to a URL such as the default of:\n"
+            "                             https://" HTTP_RESOLVE_HOST HTTP_RESOLVE_URL "\n"
+            "                             with wget in --secure-protocol mode (SSL).\n"
+            "                             The URL can be overridden with the\n"
+            "                             --resolve-url option.\n"
+            "     --resolve-http-only     Force external IP resolution via HTTP instead\n"
+            "                             HTTPS (via the URL mentioned above). This is\n"
+            "                             not recommended since it would open fwknop\n"
+            "                             to potential MITM attacks if the IP resolution\n"
+            "                             HTTP connection is altered en-route by a third\n"
+            "                             party.\n"
+            "     --resolve-url           Override the default URL used for resolving\n"
+            "                             the source IP address.\n"
+            " -u, --user-agent            Set the HTTP User-Agent for resolving the\n"
+            "                             external IP via -R, or for sending SPA\n"
+            "                             packets over HTTP. The default is\n"
+            "                             Fwknop/<version> if this option is not used.\n"
+            "     --use-wget-user-agent   Use the default wget User-Agent string instead\n"
+            "                             of Fwknop/<version>.\n"
+            " -w, --wget-cmd              Manually set the path to wget in -R mode.\n"
+            " -H, --http-proxy            Specify an HTTP proxy host through which the\n"
+            "                             SPA packet will be sent.  The port can also be\n"
+            "                             specified here by following the host/ip with\n"
+            "                             \":<port>\".\n"
+            " -U, --spoof-user            Set the username within outgoing SPA packet.\n"
+            " -l, --last-cmd              Run the fwknop client with the same command\n"
+            "                             line args as the last time it was executed\n"
+            "                             (args are read from the ~/.fwknop.run file).\n"
+            " -G, --get-key               Load an encryption key/password from a file.\n"
+            "     --stdin                 Read the encryption key/password from stdin\n"
+            "     --fd                    Specify the file descriptor to read the\n"
+            "                             encryption key/password from.\n"
+            " -k, --key-gen               Generate SPA Rijndael + HMAC keys.\n"
+            " -K, --key-gen-file          Write generated Rijndael + HMAC keys to a\n"
+            "                             file\n"
+            "     --key-rijndael          Specify the Rijndael key. Since the password is\n"
+            "                             visible to utilities (like 'ps' under Unix)\n"
+            "                             this form should only be used where security is\n"
+            "                             not important.\n"
+            "     --key-base64-rijndael   Specify the base64 encoded Rijndael key. Since\n"
+            "                             the password is visible to utilities (like 'ps'\n"
+            "                             under Unix) this form should only be used where\n"
+            "                             security is not important.\n"
+            "     --key-base64-hmac       Specify the base64 encoded HMAC key. Since the\n"
+            "                             password is visible to utilities (like 'ps'\n"
+            "                             under Unix) this form should only be used where\n"
+            "                             security is not important.\n"
+            " -r, --rand-port             Send the SPA packet over a randomly assigned\n"
+            "                             port (requires a broader pcap filter on the\n"
+            "                             server side than the default of udp 62201).\n"
+            " -T, --test                  Build the SPA packet but do not send it over\n"
+            "                             the network.\n"
+            " -v, --verbose               Set verbose mode (may specify multiple times).\n"
+            " -V, --version               Print version number.\n"
+            " -m, --digest-type           Specify the message digest algorithm to use.\n"
+            "                             (md5, sha1, sha256, sha384, or sha512). The\n"
+            "                             default is sha256.\n"
+            " -M, --encryption-mode       Specify the encryption mode when AES is used\n"
+            "                             for encrypting SPA packets.The default is CBC\n"
+            "                             mode, but others can be chosen such as CFB or\n"
+            "                             OFB as long as this is also specified in the\n"
+            "                             access.conf file on the server side. Note that\n"
+            "                             the string ``legacy'' can be specified in order\n"
+            "                             to generate SPA packets with the old initialization\n"
+            "                             vector strategy used by versions of *fwknop*\n"
+            "                             before 2.5.\n"
+            " -f, --fw-timeout            Specify SPA server firewall timeout from the\n"
+            "                             client side.\n"
+            "     --hmac-digest-type      Set the HMAC digest algorithm (default is\n"
+            "                             sha256). Options are md5, sha1, sha256,\n"
+            "                             sha384, or sha512.\n"
+            "     --icmp-type             Set the ICMP type (used with '-P icmp')\n"
+            "     --icmp-code             Set the ICMP code (used with '-P icmp')\n"
+            "     --gpg-encryption        Use GPG encryption (default is Rijndael).\n"
+            "     --gpg-recipient-key     Specify the recipient GPG key name or ID.\n"
+            "     --gpg-signer-key        Specify the signer's GPG key name or ID.\n"
+            "     --gpg-home-dir          Specify the GPG home directory.\n"
+            "     --gpg-agent             Use GPG agent if available.\n"
+            "     --gpg-exe               Set path to GPG binary.\n"
+            "     --no-save-args          Do not save fwknop command line args to the\n"
+            "                             $HOME/fwknop.run file\n"
+            "     --rc-file               Specify path to the fwknop rc file (default\n"
+            "                             is $HOME/.fwknoprc)\n"
+            "     --server-resolve-ipv4   Force IPv4 address resolution from DNS for\n"
+            "                             SPA server when using a hostname.\n"
+            "     --save-rc-stanza        Save command line arguments to the\n"
+            "                             $HOME/.fwknoprc stanza specified with the\n"
+            "                             -n option.\n"
+            "     --force-stanza          Used with --save-rc-stanza to overwrite all of\n"
+            "                             the variables for the specified stanza\n"
+            "     --stanza-list           Dump a list of the stanzas found in\n"
+            "                             $HOME/.fwknoprc\n"
+            "     --nat-local             Access a local service via a forwarded port\n"
+            "                             on the fwknopd server system.\n"
+            "     --nat-port              Specify the port to forward to access a\n"
+            "                             service via NAT.\n"
+            "     --nat-rand-port         Have the fwknop client assign a random port\n"
+            "                             for NAT access.\n"
+            "     --show-last             Show the last fwknop command line arguments.\n"
+            "     --time-offset-plus      Add time to outgoing SPA packet timestamp.\n"
+            "     --time-offset-minus     Subtract time from outgoing SPA packet\n"
+            "                             timestamp.\n"
+           );
 
     return;
 }
@@ -2667,3 +2683,4 @@ int register_ts_config_init(void)
 }
 
 #endif /* HAVE_C_UNIT_TESTS */
+

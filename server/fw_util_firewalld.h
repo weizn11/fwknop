@@ -1,10 +1,11 @@
-/**
- * \file server/fw_util_firewalld.h
+/*
+ *****************************************************************************
  *
- * \brief Header file for fw_util_firewalld.c.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    fw_util_firewalld.h
+ *
+ * Purpose: Header file for fw_util_firewalld.c.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -66,12 +67,6 @@
 #define FIREWD_LIST_RULES_ARGS     "-t %s -L %s --line-numbers -n" SH_REDIR
 #define FIREWD_LIST_ALL_RULES_ARGS "-t %s -v -n -L --line-numbers" SH_REDIR
 #define FIREWD_ANY_IP              "0.0.0.0/0"
-
-#if USE_LIBNETFILTER_QUEUE
-  #define FIREWD_NFQ_ADD_ARGS "-t %s -A %s -p udp -m udp --dport %s -j NFQUEUE --queue-num %s"
-  #define FIREWD_NFQ_ADD_ARGS_WITH_IF "-t %s -A %s -i %s -p udp -m udp --dport %s -j NFQUEUE --queue-num %s"
-  #define FIREWD_NFQ_DEL_ARGS "-t %s -D %s -p udp -m udp --dport %s -j NFQUEUE --queue-num %s"
-#endif
 
 int validate_firewd_chain_conf(const char * const chain_str);
 

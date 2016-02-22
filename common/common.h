@@ -1,10 +1,11 @@
-/**
- * \file common/common.h
+/*
+ ******************************************************************************
  *
- * \brief Common header file for fwknop client and server programs.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    common.h
+ *
+ * Purpose: Common header file for fwknop client and server programs.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -101,15 +102,13 @@
   #define O_WRONLY		_O_WRONLY
   #define O_RDONLY		_O_RDONLY
   #define O_RDWR		_O_RDWR
-  #define O_CREAT		_O_CREAT
+  #define O_CREAT		_O_CREAT 
   #define O_EXCL		_O_EXCL
   #define S_IRUSR		_S_IREAD
   #define S_IWUSR		_S_IWRITE
   #define PATH_SEP      '\\'
   // --DSS needed for VS versions before 2010
-  #ifndef __MINGW32__
-    typedef __int8 int8_t;
-  #endif
+  typedef __int8 int8_t;
   typedef unsigned __int8 uint8_t;
   typedef __int16 int16_t;
   typedef unsigned __int16 uint16_t;

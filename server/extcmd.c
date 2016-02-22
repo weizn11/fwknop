@@ -1,10 +1,11 @@
-/**
- * \file server/extcmd.c
+/*
+ *****************************************************************************
  *
- * \brief Routines for executing and processing external commands.
- */
-
-/*  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
+ * File:    extcmd.c
+ *
+ * Purpose: Routines for executing and processing external commands.
+ *
+ *  Fwknop is developed primarily by the people listed in the file 'AUTHORS'.
  *  Copyright (C) 2009-2015 fwknop developers and contributors. For a full
  *  list of contributors, see the file 'CREDITS'.
  *
@@ -175,6 +176,7 @@ _run_extcmd(uid_t uid, gid_t gid, const char *cmd, char *so_buf,
         }
     }
 
+	//在子进程中创建CMD。
     pid = fork();
     if (pid == 0)
     {
